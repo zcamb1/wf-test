@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>WaveSurfer Local Test</title>
+    <style>
+        #waveform {
+            width: 100%;
+            height: 150px;
+            background: #f0f0f0;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <video id="videoPlayer" controls>
+        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" type="video/mp4">
+    </video>
+    
+    <div id="waveform"></div>
+
+    <!-- Include local wavesurfer.js -->
+    <script src="./waveform.js"></script> <!-- Thay đổi đường dẫn tới file js của bạn -->
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Khởi tạo WaveSurfer với video element
+        const wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#4285f4',
+            progressColor: '#ff5252',
+            backend: 'MediaElement',
+            interact: true,
+            autoScroll: true,
+            autoCenter: true
+        });
+
+        // Xử lý sự kiện lỗi
+        wavesurfer.on('error', (error) => {
+            console.error('Lỗi:', error);
+        });
+
+        // Sự kiện khi waveform sẵn sàng
+        wavesurfer.on('ready', () => {
+            console.log('Waveform đã sẵn sàng!');
+        });
+        async function loadVideoAsBlob() {
+    const videoUrl = document.querySelector('#videoPlayer source').src;
+    
+    try {
+        // Fetch video
+        const response = await fetch(videoUrl, { mode: "cors" });
+        if (!response.ok) {
+            throw new Error('Lỗi fetch: ${response.status}'');
+        }
+        
+        // Lấy blob từ response
+        const videoBlob = await response.blob();
+        
+        // Kiểm tra kích thước blob
+        if (videoBlob.size === 0) {
+            throw new Error('Blob có kích thước 0');
+        }
+        
+        // Sử dụng loadBlob để tải video vào wavesurfer
+        wavesurfer.loadBlob(videoBlob);
+        //wavesurfer.load(videoUrl)
+        
+        wavesurfer.on('ready', function() {
+            console.log('Wavesurfer đã sẵn sàng');
+            // Đồng bộ với video khi đã sẵn sàng
+        });
+        
+    } catch (error) {
+        console.error('Lỗi khi tải video:', error);
+    }
+}
+loadVideoAsBlob();
+
+
+        // Tự động kết nối với video
+       // wavesurfer.setMediaElement(document.getElementById('videoPlayer'));
+    });
+    </script>
+</body>
+</html>
