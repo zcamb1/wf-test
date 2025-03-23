@@ -2,89 +2,101 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>WaveSurfer Local Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trình Phát Video Nâng Cao</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
     <style>
-        #waveform {
-            width: 100%;
-            height: 150px;
-            background: #f0f0f0;
-            margin: 20px 0;
+        /* CSS khẩn cấp để đảm bảo không có thanh cuộn và chiều cao 100% */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
+        .container {
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        /* Đảm bảo video có thể phát */
         video {
-            width: 100%;
-            margin-bottom: 20px;
+            display: block;
         }
     </style>
 </head>
 <body>
-    <video id="videoPlayer" controls>
-        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" type="video/mp4">
-    </video>
+    <div class="container">
+        <div class="player-card">
+            <div class="video-wrapper">
+                <video id="videoPlayer" controls>
+                    <source src="https://docs.evostream.com/sample_content/assets/bunny.mp4" type="video/mp4">
+                    Trình duyệt của bạn không hỗ trợ video HTML5.
+                </video>
+                <div id="fpsBadge" class="fps-badge" style="display: none;"><i class="fas fa-film"></i> <span>-- FPS</span></div>
+                <button id="themeToggle" class="theme-toggle" title="Chuyển đổi chế độ tối/sáng">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="control-panels">
+                    <div class="control-buttons">
+                        <div class="control-group">
+                            <button id="seekBack10" class="btn-control" title="Lùi 10 khung hình"><i class="fas fa-backward"></i></button>
+                            <button id="seekBack1" class="btn-control" title="Lùi 1 khung hình"><i class="fas fa-step-backward"></i></button>
+                        </div>
+                        
+                        <div class="time-input">
+                            <input type="number" id="timeCode" value="0" title="Thời gian hiện tại (milliseconds)">
+                            <button id="copyBtn" title="Sao chép mã thời gian"><i class="fas fa-copy"></i></button>
+                        </div>
+                        
+                        <div class="control-group">
+                            <button id="seekForward1" class="btn-control" title="Tiến 1 khung hình"><i class="fas fa-step-forward"></i></button>
+                            <button id="seekForward10" class="btn-control" title="Tiến 10 khung hình"><i class="fas fa-forward"></i></button>
+                        </div>
+                    </div>
+                
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBarContainer">
+                            <div id="progressBar" class="progress">
+                                <div class="progress-handle"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="waveform-container">
+                <div id="waveform" class="waveform"></div>
+                <div id="loadingOverlay" class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Đang tải dạng sóng âm thanh...</div>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <div id="waveform"></div>
-
-    <!-- Include local wavesurfer.js -->
-    <script src="./waveform.js"></script> <!-- Thay đổi đường dẫn tới file js của bạn -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span>Đã sao chép!</span>
+    </div>
     
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Khởi tạo WaveSurfer với video element
-        const wavesurfer = WaveSurfer.create({
-            container: '#waveform',
-            waveColor: '#4285f4',
-            progressColor: '#ff5252',
-            backend: 'MediaElement',
-            interact: true,
-            autoScroll: true,
-            autoCenter: true
-        });
-
-        // Xử lý sự kiện lỗi
-        wavesurfer.on('error', (error) => {
-            console.error('Lỗi:', error);
-        });
-
-        // Sự kiện khi waveform sẵn sàng
-        wavesurfer.on('ready', () => {
-            console.log('Waveform đã sẵn sàng!');
-        });
-        async function loadVideoAsBlob() {
-    const videoUrl = document.querySelector('#videoPlayer source').src;
+    <!-- Video ẩn để đo FPS -->
+    <div id="hiddenVideoContainer">
+        <video id="hiddenVideo" muted preload="auto" playsinline disablePictureInPicture>
+            <!-- Source sẽ được đặt bằng JavaScript -->
+        </video>
+    </div>
     
-    try {
-        // Fetch video
-        const response = await fetch(videoUrl, { mode: "cors" });
-        if (!response.ok) {
-            throw new Error('Lỗi fetch: ${response.status}'');
-        }
-        
-        // Lấy blob từ response
-        const videoBlob = await response.blob();
-        
-        // Kiểm tra kích thước blob
-        if (videoBlob.size === 0) {
-            throw new Error('Blob có kích thước 0');
-        }
-        
-        // Sử dụng loadBlob để tải video vào wavesurfer
-        wavesurfer.loadBlob(videoBlob);
-        //wavesurfer.load(videoUrl)
-        
-        wavesurfer.on('ready', function() {
-            console.log('Wavesurfer đã sẵn sàng');
-            // Đồng bộ với video khi đã sẵn sàng
-        });
-        
-    } catch (error) {
-        console.error('Lỗi khi tải video:', error);
-    }
-}
-loadVideoAsBlob();
-
-
-        // Tự động kết nối với video
-       // wavesurfer.setMediaElement(document.getElementById('videoPlayer'));
-    });
-    </script>
+    <!-- Thư viện -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
+    
+    <!-- Script chính (dùng type="module" để hỗ trợ ES modules) -->
+    <script type="module" src="js/index.js"></script>
 </body>
 </html>
