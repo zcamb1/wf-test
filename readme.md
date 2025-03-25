@@ -159,6 +159,61 @@ $(document).ready(function () {
             });
     });
 
+
+Toast nhỏ và nằm trên nút bấm
+```
+.toast {
+    visibility: hidden;
+    position: fixed;
+    z-index: 1000;
+    min-width: auto; /* Thu nhỏ theo nội dung */
+    max-width: 150px;
+    background-color: rgba(50, 50, 50, 0.85);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    /* Đặt vị trí mặc định */
+    bottom: auto;
+    top: auto;
+    left: auto;
+    right: auto;
+    transform: none;
+}
+
+.toast i {
+    color: #2ecc71;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.toast.show {
+    visibility: visible;
+    opacity: 1;
+}
+```
+
+```
+const updateToastPosition = () => {
+    const copyBtn = document.getElementById('copy-btn');
+    if (!copyBtn) return;
+    
+    const rect = copyBtn.getBoundingClientRect();
+    
+    // Đặt ngay phía trên nút copy
+    toastElement.style.bottom = 'auto';
+    toastElement.style.top = (rect.top - 30) + 'px';
+    toastElement.style.left = (rect.left + rect.width/2) + 'px';
+    toastElement.style.transform = 'translateX(-50%)';
+};
+```
     // Còn lại của code giữ nguyên...
 });
 ```
