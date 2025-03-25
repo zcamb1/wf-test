@@ -1729,6 +1729,49 @@ $(document).ready(function () {
 
 
 
+Not bad
+```
+function seekToFrame(frameOffset) {
+    const currentFPS = state.fps || fps || 24;
+    
+    if (currentFPS <= 0) return;
+    
+    // Tạm dừng video nếu đang phát để tránh xung đột
+    if (!$video.paused) {
+        $video.pause();
+    }
+    
+    // Tính toán frame hiện tại sử dụng Math.floor để luôn đưa về đầu frame
+    const currentTime = $video.currentTime;
+    const frameDuration = 1 / currentFPS;
+    const currentFrame = Math.floor(currentTime / frameDuration);
+    
+    // Tính frame mới
+    const targetFrame = Math.max(0, currentFrame + frameOffset);
+    const newTime = targetFrame * frameDuration;
+    
+    // Đảm bảo thời gian nằm trong phạm vi video
+    const boundedTime = Math.min(newTime, $video.duration);
+    
+    // Đặt thời gian chính xác cho video
+    $video.currentTime = boundedTime;
+    
+    // Cập nhật UI
+    $('#timecode').val((boundedTime * 1000).toFixed(0));
+    Utils.updateProgressBar($video, document.getElementById('progressbar'));
+    
+    // Cập nhật wavesurfer nếu có
+    if (wavesurfer) {
+        setTimeout(() => {
+            try {
+                wavesurfer.seekTo(boundedTime / $video.duration);
+            } catch (e) {
+                console.error("Lỗi khi cập nhật wavesurfer:", e);
+            }
+        }, 10);
+    }
+}
 
+```
 
 
