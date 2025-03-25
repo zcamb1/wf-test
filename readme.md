@@ -213,7 +213,7 @@ const updateToastPosition = () => {
     toastElement.style.left = (rect.left + rect.width/2) + 'px';
     toastElement.style.transform = 'translateX(-50%)';
 };
-```
+
     // Còn lại của code giữ nguyên...
 });
 ```
