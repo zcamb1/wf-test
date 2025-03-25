@@ -160,8 +160,11 @@ $(document).ready(function () {
     });
 
 
-Toast nhỏ và nằm trên nút bấm
 
+
+```
+
+Toast nhỏ và nằm trên nút bấm
 ```
 .toast {
     visibility: hidden;
