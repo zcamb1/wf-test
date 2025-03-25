@@ -221,3 +221,51 @@ const updateToastPosition = () => {
     // Còn lại của code giữ nguyên...
 });
 ```
+
+![image](https://github.com/user-attachments/assets/58d8e4b9-4379-40fa-8a3b-bba88c0a8138)
+
+```
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    transition: height 0.2s ease;
+}
+
+.progress-bar:hover {
+    height: 10px;
+}
+
+.progress {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #1e90ff, #ff4500);
+    border-radius: 3px;
+    position: relative;
+    transition: width 0.1s ease-out;
+}
+
+.progress-handle {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.progress-bar:hover .progress-handle {
+    opacity: 1;
+}
+```
+
+
