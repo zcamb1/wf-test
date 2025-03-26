@@ -1,0 +1,559 @@
+/* styles.css */
+
+:root {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --accent-color: #e74c3c;
+    --accent-dark: #c0392b;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --border-radius: 8px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --transition: all 0.25s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    height: 100%;
+    overflow: hidden; /* Ngăn chặn thanh cuộn ở mọi trường hợp */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    padding: 0; /* Bỏ padding 8px */
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 900px; /* Giới hạn độ rộng tối đa */
+    width: 100%;
+    height: 100vh; /* Đảm bảo container chiếm đúng 100vh */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Đảm bảo không có thanh cuộn */
+    margin: 0 auto; /* Căn giữa container */
+}
+
+.player-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Đảm bảo chiếm toàn bộ chiều cao */
+}
+
+.video-wrapper {
+    position: relative; /* Cần thiết cho controls và fps badge */
+    background: #000;
+    overflow: hidden;
+    width: 100%;
+    flex: 1;
+    min-height: 0; /* Cho phép co giãn */
+}
+
+video {
+    display: block; /* Loại bỏ khoảng trắng dưới video */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Giữ tỷ lệ video */
+    background-color: #000;
+}
+
+.fps-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 100; /* Trên custom controls nhưng dưới menu speed */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fps-badge i {
+    font-size: 12px;
+}
+
+/* --- Panel điều khiển cũ (Nút tua frame, timecode) --- */
+.controls-panel {
+    padding: 10px 15px;
+    background: var(--card-bg);
+}
+
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-input {
+    display: flex;
+    align-items: center;
+    position: relative;
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: var(--transition);
+    overflow: hidden;
+    height: 36px;
+}
+
+.time-input:focus-within {
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+input[type="number"] {
+    width: 80px; padding: 8px 10px; border: none; background: transparent; text-align: center;
+    font-size: 14px; transition: var(--transition); font-family: 'Segoe UI', -apple-system, sans-serif;
+    height: 100%; line-height: 1;
+}
+
+input[type="number"]:focus { outline: none; }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Style chung cho các nút button (bao gồm cả nút tua frame) */
+button {
+    padding: 8px 12px; background-color: var(--primary-color); color: white; border: none;
+    border-radius: 6px; cursor: pointer; font-size: 14px; min-width: 40px; height: 36px;
+    transition: var(--transition); box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex;
+    align-items: center; justify-content: center; gap: 6px;
+}
+button:hover { background-color: var(--primary-dark); box-shadow: 0 3px 6px rgba(0,0,0,0.15); transform: translateY(-1px); }
+button:active { box-shadow: 0 1px 2px rgba(0,0,0,0.1); transform: translateY(0); }
+
+/* Style riêng cho nút tua frame và nút copy trong time-input */
+button.btn-control, .time-input button { background-color: #f5f5f5; color: var(--text-color); box-shadow: none; border-radius: 6px; }
+.time-input button { border-radius: 0 6px 6px 0; height: 100%; min-width: 36px; padding: 8px 10px; margin-left: -1px; }
+button.btn-control:hover, .time-input button:hover { background-color: #e9e9e9; transform: none; box-shadow: none; }
+button.btn-accent { background-color: var(--accent-color); }
+button.btn-accent:hover { background-color: var(--accent-dark); }
+
+/* --- Waveform --- */
+.waveform-container { width: 100%; height: 100px; min-height: 80px; position: relative; background: #f9f9f9; flex-shrink: 0; border-top: 1px solid rgba(0,0,0,0.05); }
+.waveform { width: 100%; height: 100%; position: relative; z-index: 1; }
+wave { overflow: hidden !important; height: 100% !important; }
+
+/* --- Loading, Toast, Hidden Video --- */
+.loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; gap: 15px; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.loading-spinner { width: 36px; height: 36px; border: 3px solid rgba(52,152,219,0.2); border-radius: 50%; border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { text-align: center; color: var(--primary-color); font-size: 14px; font-weight: 500; }
+.toast { visibility: hidden; position: fixed; z-index: 1000; min-width: 180px; max-width: 80%; background-color: rgba(50, 50, 50, 0.9); color: white; padding: 12px 20px; border-radius: 6px; font-size: 14px; opacity: 0; transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; text-align: center; }
+.toast i { color: #2ecc71; font-size: 16px; flex-shrink: 0; }
+.toast.show { visibility: visible; opacity: 1; }
+@media (max-width: 480px) { .toast { bottom: 20px; left: 50%; transform: translateX(-50%); } .toast.show { bottom: 30px; } }
+@media (min-width: 481px) { .toast { top: 30px; left: 50%; transform: translateX(-50%); } .toast.show { top: 40px; } }
+#hiddenVideoContainer { position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; z-index: -1; overflow: hidden; }
+.shortcut-hint { display: none; }
+
+/* ========================================================== */
+/* === CUSTOM VIDEO CONTROLS - YouTube Style === */
+/* ========================================================== */
+
+.custom-video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+    padding: 0;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    z-index: 21;
+    box-sizing: border-box;
+    width: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.video-wrapper:not(:hover):not(.controls-visible) .custom-video-controls {
+    opacity: 0;
+}
+
+/* Main Controls Area */
+.main-controls-area {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 16px 10px 16px;
+    height: 36px;
+}
+
+/* Time Display */
+.time-info {
+    color: white;
+    font-size: 13px;
+    font-weight: 400;
+    margin-right: 14px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Controls on the right side */
+.controls-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* Control Buttons */
+.control-button {
+    color: white;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 8px;
+    font-size: 18px;
+    opacity: 0.9;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    height: auto;
+    min-width: auto;
+    border-radius: 50%;
+}
+
+.control-button:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: none;
+}
+
+/* Volume control */
+.volume-control {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.volume-slider {
+    width: 0;
+    height: 3px;
+    margin-left: 2px;
+    cursor: pointer;
+    opacity: 0;
+    transition: width 0.2s ease, opacity 0.2s ease;
+    vertical-align: middle;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.volume-control:hover .volume-slider {
+    width: 50px;
+    opacity: 1;
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    margin-top: -4.5px;
+    cursor: pointer;
+}
+
+.volume-slider::-moz-range-track {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+/* Progress Bar - YouTube Style */
+.custom-progress-container {
+    width: 100%;
+    height: 5px;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 0 4px 0;
+    position: relative;
+}
+
+.custom-progress-bar {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: height 0.2s ease;
+}
+
+.custom-progress-container:hover .custom-progress-bar {
+    height: 5px;
+}
+
+.custom-progress-buffer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background-color: rgba(255, 255, 255, 0.4);
+    transition: width 0.1s ease;
+    z-index: 1;
+}
+
+.custom-progress-played {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background-color: #ff0000;
+    transition: width 0.05s linear;
+    z-index: 2;
+}
+
+.custom-progress-played.no-transition {
+    transition: none !important;
+}
+
+.custom-progress-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 13px;
+    height: 13px;
+    background-color: #ff0000;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+    border: 2px solid white;
+    box-sizing: border-box;
+}
+
+.custom-progress-thumb.no-transition {
+    transition: none !important;
+}
+
+.custom-progress-container:hover .custom-progress-thumb {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.seeking .custom-progress-thumb {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+}
+
+/* YouTube hover preview area */
+.custom-progress-container::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 5px;
+}
+
+.custom-progress-container:hover::before {
+    height: 10px;
+}
+
+/* Settings Menu */
+.settings-control {
+    position: relative;
+}
+
+.speed-menu {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background-color: rgba(28, 28, 28, 0.9);
+    border-radius: 4px;
+    padding: 8px 0;
+    min-width: 180px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    margin-bottom: 8px;
+}
+
+.speed-menu.visible {
+    display: block;
+}
+
+.speed-menu-header {
+    color: #aaa;
+    font-size: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 5px;
+    text-transform: none;
+    font-weight: 500;
+}
+
+.speed-option {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #eee;
+    text-align: left;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+}
+
+.speed-option:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.speed-option.active {
+    font-weight: 500;
+    padding-left: 32px;
+}
+
+.speed-option.active::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .controls-panel { padding: 8px 10px; }
+    .controls-panel button { height: 32px; min-width: 34px; padding: 6px 8px; font-size: 12px;}
+    .time-input { height: 32px; }
+    .time-input button { min-width: 32px; padding: 6px 8px;}
+    input[type="number"] { width: 60px; font-size: 12px; padding: 6px; }
+    .waveform-container { height: 90px; min-height: 70px; }
+    .fps-badge { font-size: 11px; padding: 3px 8px; }
+    
+    /* YouTube controls */
+    .main-controls-area {
+        height: 32px;
+        padding: 0 14px 8px 14px;
+    }
+    
+    .control-button {
+        font-size: 16px;
+        padding: 6px;
+    }
+    
+    .time-info {
+        font-size: 12px;
+        margin-right: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .controls-panel { padding: 6px; gap: 8px; }
+    .control-buttons { gap: 4px; }
+    .controls-panel button { height: 28px; min-width: 30px; padding: 4px 6px; font-size: 11px;}
+    .time-input { height: 28px; }
+    .time-input button { min-width: 28px; padding: 4px 6px;}
+    input[type="number"] { width: 50px; font-size: 11px; padding: 4px; }
+    .waveform-container { height: 70px; min-height: 60px; }
+    
+    /* YouTube controls */
+    .main-controls-area {
+        height: 28px;
+        padding: 0 10px 6px 10px;
+    }
+    
+    .control-button {
+        font-size: 15px;
+        padding: 5px;
+    }
+    
+    .time-info {
+        font-size: 11px;
+        margin-right: 8px;
+    }
+    
+    .volume-control:hover .volume-slider {
+        width: 40px;
+    }
+    
+    .controls-right {
+        gap: 4px;
+    }
+}
+
+/* --- Animation & Focus styles cuối cùng --- */
+@keyframes fadeInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+.fps-badge { animation: fadeInLeft 0.3s ease-out; }
+button:focus, input[type="number"]:focus, input[type="range"]:focus { outline: 2px solid rgba(52, 152, 219, 0.4); outline-offset: 1px; /* Giảm offset */ }
+/* Style focus riêng cho nút control để rõ hơn */
+.control-button:focus { background-color: rgba(255, 255, 255, 0.1); }
+
+/* Ẩn controls gốc */
+video::-webkit-media-controls,
+video::-moz-media-controls,
+video::media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-timeline {
+    display: none !important;
+}

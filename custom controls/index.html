@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trình Phát Video Nâng Cao</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* CSS khẩn cấp */
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        .container { height: 100vh; max-height: 100vh; overflow: hidden; max-width: 900px; margin: 0 auto; }
+        video { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="player-card">
+
+            <!-- === 1. VIDEO WRAPPER === -->
+            <div class="video-wrapper">
+                <video id="videoPlayer">
+                    <source src="https://docs.evostream.com/sample_content/assets/poppres240p.mp4" type="video/mp4">
+                    Trình duyệt của bạn không hỗ trợ video HTML5.
+                </video>
+                <div id="fpsBadge" class="fps-badge" style="display: none;"><i class="fas fa-film"></i> <span>-- FPS</span></div>
+
+                <!-- CUSTOM VIDEO CONTROLS -->
+                <div class="custom-video-controls">
+                    <!-- Progress Bar - Thanh tiến trình ở trên cùng -->
+                    <div class="custom-progress-container" id="customProgressContainer">
+                        <div class="custom-progress-bar" id="customProgressBarBackground">
+                            <div class="custom-progress-buffer" id="customProgressBuffer"></div>
+                            <div class="custom-progress-played" id="customProgressPlayed"></div>
+                            <div class="custom-progress-thumb" id="customProgressThumb"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Controls Row - Nút điều khiển và hiển thị thời gian -->
+                    <div class="main-controls-area">
+                        <!-- Play/Pause Button -->
+                        <button id="customPlayPause" class="control-button" title="Play/Pause">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        
+                        <!-- Time Display - Hiển thị thời gian hiện tại / tổng thời gian -->
+                        <span id="customTimeInfo" class="time-info">0:49 / 6:10</span>
+                        
+                        <!-- Right Controls Group -->
+                        <div class="controls-right">
+                            <!-- Volume Control -->
+                            <div class="volume-control">
+                                <button id="customVolume" class="control-button" title="Mute/Unmute">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                                <input type="range" id="customVolumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1">
+                            </div>
+                            
+                            <!-- Fullscreen Button -->
+                            <button id="customFullscreen" class="control-button" title="Fullscreen">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            
+                            <!-- Settings Menu -->
+                            <div class="settings-control">
+                                <button id="customSettings" class="control-button" title="Settings">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <div class="speed-menu" id="speedMenu">
+                                    <div class="speed-menu-header">Playback Speed</div>
+                                    <button class="speed-option" data-speed="0.5">0.5x</button>
+                                    <button class="speed-option" data-speed="0.75">0.75x</button>
+                                    <button class="speed-option active" data-speed="1">Normal</button>
+                                    <button class="speed-option" data-speed="1.25">1.25x</button>
+                                    <button class="speed-option" data-speed="1.5">1.5x</button>
+                                    <button class="speed-option" data-speed="2">2x</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- END CUSTOM VIDEO CONTROLS -->
+            </div>
+            <!-- === END VIDEO WRAPPER === -->
+
+
+            <!-- === 2. CONTROLS PANEL (Nút tua frame, input) === -->
+            <div class="controls-panel">
+                 <div class="control-buttons">
+                    <div class="control-group"> <button id="seekBack10" class="btn-control" title="Lùi 10 khung hình"><i class="fas fa-backward"></i></button> <button id="seekBack1" class="btn-control" title="Lùi 1 khung hình"><i class="fas fa-step-backward"></i></button> </div>
+                    <div class="time-input"> <input type="number" id="timeCode" value="0" title="Thời gian hiện tại (milliseconds)"> <button id="copyBtn" title="Sao chép mã thời gian"><i class="fas fa-copy"></i></button> </div>
+                    <div class="control-group"> <button id="seekForward1" class="btn-control" title="Tiến 1 khung hình"><i class="fas fa-step-forward"></i></button> <button id="seekForward10" class="btn-control" title="Tiến 10 khung hình"><i class="fas fa-forward"></i></button> </div>
+                </div>
+            </div>
+            <!-- === END CONTROLS PANEL === -->
+
+
+            <!-- === 3. WAVEFORM CONTAINER === -->
+            <div class="waveform-container"> <div id="waveform" class="waveform"></div> <div id="loadingOverlay" class="loading-overlay"> <div class="loading-spinner"></div> <div class="loading-text">Đang tải dạng sóng âm thanh...</div> </div> </div>
+            <!-- === END WAVEFORM CONTAINER === -->
+
+        </div> <!-- End .player-card -->
+    </div> <!-- End .container -->
+
+    <!-- Toast, Hidden Video -->
+    <div id="toast" class="toast"> <i class="fas fa-check-circle"></i><span>Đã sao chép!</span> </div>
+    <div id="hiddenVideoContainer"> <video id="hiddenVideo" muted preload="auto" playsinline disablePictureInPicture></video> </div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.2.1/wavesurfer.min.js"></script>
+
+    <!-- Main Script -->
+    <script type="module" src="js/index.js"></script>
+</body>
+</html>
