@@ -1255,6 +1255,9 @@ const controlsHTML = `
 }
 
 
+![image](https://github.com/user-attachments/assets/0c32fe2c-00d5-4c1d-81cc-be8f738cf528)
+
+
 ![image](https://github.com/user-attachments/assets/5c8f07b8-03a5-4ac8-a909-b0d0f3be3aad)
 
 ```
