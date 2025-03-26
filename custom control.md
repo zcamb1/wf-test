@@ -1153,3 +1153,108 @@ $(document).ready(function() {
 
 
 
+
+```
+// Thứ tự đã thay đổi - thanh tiến trình nằm dưới các nút điều khiển
+const controlsHTML = `
+<!-- CUSTOM VIDEO CONTROLS - YOUTUBE STYLE -->
+<div class="custom-video-controls">
+    <!-- Main Controls Row - Nút điều khiển và hiển thị thời gian -->
+    <div class="main-controls-area">
+        <!-- Play/Pause Button -->
+        <button id="customPlayPause" class="control-button" title="Play/Pause">
+            <i class="fas fa-play"></i>
+        </button>
+        
+        <!-- Time Display - Hiển thị thời gian hiện tại / tổng thời gian -->
+        <span id="customTimeInfo" class="time-info">0:00 / 0:00</span>
+        
+        <!-- Right Controls Group -->
+        <div class="controls-right">
+            <!-- Volume Control -->
+            <div class="volume-control">
+                <button id="customVolume" class="control-button" title="Mute/Unmute">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <input type="range" id="customVolumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1">
+            </div>
+            
+            <!-- Fullscreen Button -->
+            <button id="customFullscreen" class="control-button" title="Fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+            
+            <!-- Settings Menu -->
+            <div class="settings-control">
+                <button id="customSettings" class="control-button" title="Settings">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="speed-menu" id="speedMenu">
+                    <div class="speed-menu-header">Playback Speed</div>
+                    <button class="speed-option" data-speed="0.5">0.5x</button>
+                    <button class="speed-option" data-speed="0.75">0.75x</button>
+                    <button class="speed-option active" data-speed="1">Normal</button>
+                    <button class="speed-option" data-speed="1.25">1.25x</button>
+                    <button class="speed-option" data-speed="1.5">1.5x</button>
+                    <button class="speed-option" data-speed="2">2x</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Bar - Thanh tiến trình đã chuyển xuống dưới -->
+    <div class="custom-progress-container" id="customProgressContainer">
+        <div class="custom-progress-bar" id="customProgressBarBackground">
+            <div class="custom-progress-buffer" id="customProgressBuffer"></div>
+            <div class="custom-progress-played" id="customProgressPlayed"></div>
+            <div class="custom-progress-thumb" id="customProgressThumb"></div>
+        </div>
+    </div>
+</div>
+<!-- END CUSTOM VIDEO CONTROLS -->
+`;
+```
+
+```
+/* Điều chỉnh thanh điều khiển chính */
+.main-controls-area {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px 16px 5px 16px; /* Tăng padding-top, giảm padding-bottom */
+    height: 36px;
+}
+
+/* Điều chỉnh container thanh tiến trình */
+.custom-progress-container {
+    width: 100%;
+    height: 5px;
+    cursor: pointer;
+    padding: 0;
+    margin: 5px 0 10px 0; /* Thêm margin-top và margin-bottom */
+    position: relative;
+}
+
+/* Đổi vị trí hiển thị preview khi hover */
+.custom-progress-container::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -5px; /* Thay đổi từ bottom sang top */
+    height: 5px;
+}
+
+.custom-progress-container:hover::before {
+    height: 10px;
+}
+
+/* Điều chỉnh padding tổng thể */
+.custom-video-controls {
+    padding: 5px 0; /* Thêm padding-top cho toàn bộ controls */
+}
+
+
+![image](https://github.com/user-attachments/assets/5c8f07b8-03a5-4ac8-a909-b0d0f3be3aad)
+
+```
