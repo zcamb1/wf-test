@@ -1,4 +1,3 @@
-```
 // index.html - Main Entry Point
 <!DOCTYPE html>
 <html lang="en">
@@ -3640,4 +3639,3 @@ window.onload = function() {
         }
     });
 };
-```
