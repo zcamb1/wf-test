@@ -1844,3 +1844,702 @@ $(document).ready(function() {
                 <div class="settings-control">
                     <button id="customSettings" class="control-button" title
 ```
+
+
+```
+/**
+ * @fileoverview Module for detecting the FPS (Frames Per Second) of a video.
+ */
+
+/**
+ * Sets up FPS detection functionality.
+ *
+ * @param {HTMLVideoElement} videoPlayer The main video element.
+ * @param {HTMLVideoElement} hiddenVideo A hidden video element used for measurement.
+ * @param {HTMLElement} fpsBadge The element to display the detected FPS.
+ * @param {Object} state A shared state object for the application. Expected properties:
+ *                       `isMeasuring` (boolean), `measuringTimeout` (number|null),
+ *                       `useDirectMethod` (boolean), `fps` (number|null),
+ *                       `cachedFPS` (object|null).
+ * @returns {Object} An object containing FPS detection methods.
+ */
+function setupFpsDetection(videoPlayer, hiddenVideo, fpsBadge, state) {
+    // --- Constants ---
+    const MAX_RETRIES = 3;
+    const DEFAULT_FPS = 24;
+    const MEASUREMENT_FRAME_LIMIT = 40; // Max frames to analyze
+    const MEASUREMENT_TIME_LIMIT = 2000; // Max time (ms) for analysis
+    const MEASUREMENT_TIMEOUT_BUFFER = 3000; // Extra time before declaring timeout
+    const PREPARE_VIDEO_TIMEOUT = 5000; // Max time (ms) to wait for video readiness
+    const RETRY_DELAY = 1000; // Delay (ms) between detection retries
+
+    // --- Internal State ---
+    let fpsDetectionRetries = 0;
+    let retryTimeoutId = null;
+
+    // --- Helper Functions ---
+
+    /**
+     * Creates a default FPS result object.
+     * @param {number} [fps=DEFAULT_FPS] - The FPS value to use.
+     * @returns {{fps: number, totalFrames: number, duration: number, measurements: Array, default: boolean}} The default result object.
+     * @private
+     */
+    const _createDefaultFpsResult = (fps = DEFAULT_FPS) => ({
+        fps: fps,
+        totalFrames: 0,
+        duration: 0,
+        measurements: [],
+        default: true,
+    });
+
+    /**
+     * Cleans up the hidden video element to free resources.
+     */
+    function cleanupHiddenVideo() {
+        console.log("Cleaning up hidden video element.");
+        if (hiddenVideo) {
+            try {
+                hiddenVideo.pause();
+                // Setting src to '' or removing the attribute is more effective
+                // than just hiddenVideo.load() for stopping network activity.
+                hiddenVideo.removeAttribute('src');
+                hiddenVideo.load(); // Request browser to release resources
+                hiddenVideo.onloadedmetadata = null;
+                hiddenVideo.onerror = null;
+                // Consider removing event listeners added elsewhere if necessary
+            } catch (e) {
+                console.error("Error during hidden video cleanup:", e);
+            }
+        }
+    }
+
+    /**
+     * Prepares a video element for measurement, waiting for it to be ready.
+     * @param {HTMLVideoElement} videoElement The video element to prepare.
+     * @returns {Promise<void>} Resolves when the video is ready, rejects on timeout or error.
+     * @private
+     */
+    const _prepareVideoForMeasurement = (videoElement) => {
+        return new Promise((resolve, reject) => {
+            // Check if video is already ready enough
+            // readyState 3 (HAVE_FUTURE_DATA) or 4 (HAVE_ENOUGH_DATA)
+            if (videoElement.readyState >= 3) {
+                console.log("Video already ready for FPS measurement.");
+                resolve();
+                return;
+            }
+             // readyState 2 (HAVE_METADATA) might be sufficient sometimes
+            if (videoElement.readyState === 2 && videoElement.duration > 0) {
+                 console.log("Video has metadata, attempting measurement.");
+                 resolve();
+                 return;
+            }
+
+
+            console.log("Waiting for video to become ready for FPS measurement...");
+
+            const timeoutId = setTimeout(() => {
+                videoElement.removeEventListener('canplay', readyHandler);
+                videoElement.removeEventListener('loadeddata', readyHandler); // Also listen for loadeddata
+                videoElement.removeEventListener('error', errorHandler);
+                // Attempt measurement even if only metadata is ready (readyState 2)
+                if (videoElement.readyState >= 2) {
+                     console.warn(`Video readiness timeout (${PREPARE_VIDEO_TIMEOUT}ms), proceeding with readyState: ${videoElement.readyState}`);
+                     resolve();
+                } else {
+                     reject(new Error(`Video did not become ready within ${PREPARE_VIDEO_TIMEOUT}ms (readyState: ${videoElement.readyState})`));
+                }
+            }, PREPARE_VIDEO_TIMEOUT);
+
+            const readyHandler = () => {
+                clearTimeout(timeoutId);
+                videoElement.removeEventListener('canplay', readyHandler);
+                videoElement.removeEventListener('loadeddata', readyHandler);
+                videoElement.removeEventListener('error', errorHandler);
+                console.log("Video became ready (canplay or loadeddata event).");
+                resolve();
+            };
+
+             const errorHandler = (event) => {
+                clearTimeout(timeoutId);
+                videoElement.removeEventListener('canplay', readyHandler);
+                videoElement.removeEventListener('loadeddata', readyHandler);
+                videoElement.removeEventListener('error', errorHandler);
+                console.error("Video error during preparation:", event);
+                reject(new Error("Video error occurred during preparation."));
+            };
+
+
+            // Listen for events indicating readiness
+            videoElement.addEventListener('canplay', readyHandler);
+             videoElement.addEventListener('loadeddata', readyHandler); // Often fires earlier than canplay
+             videoElement.addEventListener('error', errorHandler);
+
+
+            // If paused and not loading, try playing to trigger loading
+            // Mute to avoid issues with autoplay policies
+            if (videoElement.paused && videoElement.networkState < 3 /* NETWORK_LOADING or NETWORK_IDLE */) {
+                const originalMuted = videoElement.muted;
+                videoElement.muted = true;
+                console.log("Attempting to play video to trigger loading...");
+                videoElement.play()
+                    .then(() => {
+                        console.log("Video play initiated to assist loading.");
+                        // Don't pause immediately, let it load a bit
+                    })
+                    .catch(err => {
+                        console.warn("Could not play video to trigger loading (might be normal):", err);
+                        // Continue waiting for events, don't reject here
+                    })
+                    .finally(() => {
+                       // Restore muted state after a short delay, giving events time to fire
+                       setTimeout(() => {
+                           videoElement.muted = originalMuted;
+                       }, 100);
+                    });
+            }
+        });
+    };
+
+
+    /**
+     * Detects FPS directly using requestVideoFrameCallback on a given video element.
+     *
+     * @param {HTMLVideoElement} videoElement The video element to measure.
+     * @param {Object} [options={}] Measurement options.
+     * @param {number} [options.frameLimit=MEASUREMENT_FRAME_LIMIT] The maximum number of frames to capture.
+     * @param {number} [options.timeLimit=MEASUREMENT_TIME_LIMIT] The maximum time (ms) allowed for measurement.
+     * @param {Function} [options.onComplete=()=>{}] Callback function when measurement completes.
+     * @returns {Promise<Object>} A promise that resolves with the FPS detection result.
+     * @throws {Error} If the browser doesn't support requestVideoFrameCallback or video has no source.
+     */
+    async function detectFPSDirectly(videoElement, options = {}) {
+        const settings = {
+            frameLimit: MEASUREMENT_FRAME_LIMIT,
+            timeLimit: MEASUREMENT_TIME_LIMIT,
+            onComplete: () => {},
+            ...options
+        };
+
+        if (!('requestVideoFrameCallback' in HTMLVideoElement.prototype)) {
+            throw new Error("Browser does not support requestVideoFrameCallback.");
+        }
+
+        if (!videoElement.currentSrc) {
+            throw new Error("Video element has no source assigned.");
+        }
+
+        const measurementType = videoElement === hiddenVideo ? "hidden video" : "main video";
+        console.log(`Starting direct FPS measurement on ${measurementType}...`);
+
+        try {
+            await _prepareVideoForMeasurement(videoElement);
+        } catch (err) {
+            console.error(`Error preparing ${measurementType} for measurement:`, err);
+            const result = _createDefaultFpsResult();
+            settings.onComplete(result);
+            return result; // Return default FPS on preparation failure
+        }
+
+        // Ensure measurement doesn't start if already measuring
+        // This check prevents race conditions if called multiple times quickly
+        if (state.isMeasuring) {
+            console.warn("Measurement attempt aborted: Another measurement is already in progress.");
+            // Consider returning a specific status or error if needed
+             return _createDefaultFpsResult(); // Or perhaps reject? For now, return default.
+        }
+
+        return new Promise((resolve) => { // No reject needed here as errors lead to default result
+            // Store initial video state (only relevant for direct method on main player)
+            const isDirectMethod = state.useDirectMethod; // Check state *before* starting measurement
+            const wasPlaying = !videoElement.paused;
+            const originalTime = videoElement.currentTime;
+            const originalMuted = videoElement.muted;
+            const originalVolume = videoElement.volume;
+
+            // Measurement variables
+            let frameCount = 0;
+            let firstFrameTime = 0; // Renamed from startTime for clarity
+            let lastFrameTime = 0;
+            let measurements = [];
+            let rafId = null; // Store the requestVideoFrameCallback handle
+            let localIsMeasuring = true; // Use local flag to manage callback loop
+
+            // Set global measuring flag and timeout
+            state.isMeasuring = true;
+            if (state.measuringTimeout) clearTimeout(state.measuringTimeout);
+
+            state.measuringTimeout = setTimeout(() => {
+                if (localIsMeasuring) { // Check local flag
+                    console.warn(`FPS measurement timed out after ${settings.timeLimit + MEASUREMENT_TIMEOUT_BUFFER}ms.`);
+                    localIsMeasuring = false; // Stop further processing in frameCallback
+                    if (rafId) {
+                         // Although requestVideoFrameCallback doesn't have a native cancel,
+                         // setting localIsMeasuring to false should stop the chain.
+                         // If using requestAnimationFrame fallback, you'd cancel here.
+                         console.log("Cancelling pending frame callback (logically).");
+                    }
+                    cleanupAndResolve(true); // Indicate partial result due to timeout
+                }
+            }, settings.timeLimit + MEASUREMENT_TIMEOUT_BUFFER); // Total timeout
+
+            const cleanup = () => {
+                console.log(`Cleaning up after FPS measurement on ${measurementType}.`);
+                if (state.measuringTimeout) {
+                    clearTimeout(state.measuringTimeout);
+                    state.measuringTimeout = null;
+                }
+                 state.isMeasuring = false; // Reset global flag *after* processing is done
+
+                // Restore video state ONLY if measuring directly on the main player
+                if (isDirectMethod && videoElement === videoPlayer) {
+                    try {
+                         // Only seek back if time actually changed significantly
+                         if (Math.abs(videoElement.currentTime - originalTime) > 0.1) {
+                              videoElement.currentTime = originalTime;
+                         }
+                         videoElement.muted = originalMuted;
+                         videoElement.volume = originalVolume; // Restore volume as well
+
+                         // Pause only if it was originally paused
+                         if (!wasPlaying && !videoElement.paused) {
+                              videoElement.pause();
+                         }
+                    } catch (e) {
+                        console.error("Error restoring video state:", e);
+                    }
+                } else if (videoElement === hiddenVideo) {
+                    // Ensure hidden video is paused after measurement
+                     if (!hiddenVideo.paused) {
+                           hiddenVideo.pause();
+                     }
+                }
+            };
+
+            const cleanupAndResolve = (isPartial = false) => {
+                 cleanup(); // Perform cleanup first
+
+                let measuredFPS = DEFAULT_FPS;
+                let result;
+
+                if (frameCount > 5) { // Require a minimum number of frames for a reasonable calculation
+                    const durationMs = lastFrameTime - firstFrameTime;
+                    measuredFPS = Math.round((frameCount / (durationMs / 1000)));
+                    result = {
+                        fps: measuredFPS,
+                        totalFrames: frameCount,
+                        duration: durationMs / 1000,
+                        measurements: measurements,
+                        partial: isPartial, // Indicate if result is from timeout/limit
+                        default: false
+                    };
+                    console.log(`FPS Measurement Result (${measurementType}): ${measuredFPS} FPS (${frameCount} frames / ${(durationMs / 1000).toFixed(2)}s)`);
+                } else {
+                    console.warn(`Not enough frames (${frameCount}) captured for reliable FPS calculation. Using default: ${DEFAULT_FPS}`);
+                    result = _createDefaultFpsResult();
+                    result.partial = isPartial; // Mark as partial even if default
+                }
+
+                settings.onComplete(result);
+                resolve(result);
+            };
+
+
+            const frameCallback = (now, metadata) => {
+                // 'now' is performance.now() timestamp
+                // 'metadata.mediaTime' is videoElement.currentTime
+                // 'metadata.presentedFrames' could be useful but varies by browser
+
+                if (!localIsMeasuring) { // Check flag before processing
+                    return; // Measurement was stopped (timeout or completion)
+                }
+
+                if (firstFrameTime === 0) {
+                    firstFrameTime = now;
+                    lastFrameTime = now;
+                }
+
+                const deltaTime = now - lastFrameTime; // Time since last frame callback
+
+                measurements.push({
+                    frame: frameCount,
+                    timestamp: now, // Absolute time
+                    mediaTime: metadata.mediaTime,
+                    delta: deltaTime,
+                     presentedFrames: metadata.presentedFrames // Include for potential analysis
+                });
+
+                lastFrameTime = now;
+                frameCount++;
+
+                const timeElapsed = now - firstFrameTime;
+
+                // Check termination conditions
+                if (frameCount < settings.frameLimit && timeElapsed < settings.timeLimit && localIsMeasuring) {
+                    // Continue measurement
+                    try {
+                         rafId = videoElement.requestVideoFrameCallback(frameCallback);
+                    } catch(err) {
+                         console.error("Error requesting next video frame callback:", err);
+                         localIsMeasuring = false; // Stop measurement on error
+                         cleanupAndResolve(true); // Resolve with partial/default data
+                    }
+                } else {
+                    // Stop measurement (limit reached or flag set)
+                    localIsMeasuring = false;
+                    if (timeElapsed >= settings.timeLimit) {
+                        console.log(`Measurement reached time limit (${settings.timeLimit}ms).`);
+                    } else if (frameCount >= settings.frameLimit){
+                        console.log(`Measurement reached frame limit (${settings.frameLimit} frames).`);
+                    }
+                    cleanupAndResolve(false); // Indicate completed normally
+                }
+            };
+
+            // --- Start the measurement ---
+            console.log(`Requesting first video frame callback for ${measurementType}...`);
+
+            // Mute video during measurement if using direct method on main player
+            // This is less critical for hiddenVideo as it should already be muted.
+            if (isDirectMethod && videoElement === videoPlayer) {
+                videoElement.muted = true;
+            }
+
+            // Ensure video is playing to receive frame callbacks
+            const startMeasurement = () => {
+                 try {
+                      rafId = videoElement.requestVideoFrameCallback(frameCallback);
+                 } catch (err) {
+                      console.error("Error requesting initial video frame callback:", err);
+                       localIsMeasuring = false; // Stop measurement on error
+                       cleanupAndResolve(true); // Resolve with partial/default data
+                 }
+            };
+
+            if (videoElement.paused) {
+                videoElement.play()
+                    .then(() => {
+                        console.log(`Video playback started for ${measurementType} measurement.`);
+                        startMeasurement();
+                    })
+                    .catch(err => {
+                        console.error(`Error playing ${measurementType} for FPS measurement:`, err);
+                        localIsMeasuring = false; // Stop measurement
+                        cleanupAndResolve(true); // Resolve with default data
+                    });
+            } else {
+                // Video is already playing
+                startMeasurement();
+            }
+        });
+    }
+
+    /**
+     * Detects video FPS, trying the hidden video first, then falling back to the main video.
+     *
+     * @param {HTMLVideoElement} mainVideo The main video player element.
+     * @param {Object} [options={}] Measurement options (passed to detectFPSDirectly).
+     * @returns {Promise<Object>} A promise resolving with the FPS detection result.
+     */
+    async function detectVideoFPS(mainVideo, options = {}) {
+        console.log("Attempting FPS detection for:", mainVideo.currentSrc);
+
+        // Clear any pending retry timeouts
+        if (retryTimeoutId) {
+            clearTimeout(retryTimeoutId);
+            retryTimeoutId = null;
+        }
+
+        if (!mainVideo.currentSrc) {
+             console.error("Main video has no source. Cannot detect FPS.");
+            return _createDefaultFpsResult();
+        }
+
+        // --- Step 1: Prepare Hidden Video (if source differs or not set) ---
+        let hiddenVideoReady = false;
+        if (mainVideo.currentSrc && mainVideo.currentSrc !== hiddenVideo.src) {
+            console.log("Setting up hidden video with source:", mainVideo.currentSrc);
+            cleanupHiddenVideo(); // Clean up previous state first
+
+            hiddenVideo.muted = true;
+            hiddenVideo.volume = 0;
+            hiddenVideo.crossOrigin = mainVideo.crossOrigin || 'anonymous'; // Ensure crossOrigin is set
+            hiddenVideo.setAttribute('playsinline', '');
+            // Autoplay might not always work; rely on manual play in measurement
+            // hiddenVideo.setAttribute('autoplay', '');
+             hiddenVideo.preload = 'auto'; // Suggest preloading
+
+            hiddenVideo.src = mainVideo.currentSrc;
+
+            try {
+                // Wait for hidden video to load metadata
+                 // Use a promise wrapper around events for cleaner async/await flow
+                 await new Promise((resolve, reject) => {
+                      const loadTimeout = setTimeout(() => {
+                          hiddenVideo.onloadedmetadata = null;
+                          hiddenVideo.onerror = null;
+                          reject(new Error(`Hidden video timed out loading metadata (${PREPARE_VIDEO_TIMEOUT}ms)`));
+                      }, PREPARE_VIDEO_TIMEOUT);
+
+                      hiddenVideo.onloadedmetadata = () => {
+                          clearTimeout(loadTimeout);
+                          hiddenVideo.onloadedmetadata = null;
+                          hiddenVideo.onerror = null;
+                          console.log("Hidden video metadata loaded.");
+                          resolve();
+                      };
+                      hiddenVideo.onerror = (err) => {
+                          clearTimeout(loadTimeout);
+                          hiddenVideo.onloadedmetadata = null;
+                          hiddenVideo.onerror = null;
+                          console.error("Error loading hidden video source:", err);
+                          reject(new Error("Hidden video source failed to load."));
+                      };
+                      // Explicitly call load() after setting src might help some browsers
+                      hiddenVideo.load();
+                 });
+                hiddenVideoReady = true;
+            } catch (err) {
+                console.error("Failed to prepare hidden video:", err);
+                hiddenVideoReady = false;
+                // Don't automatically clean up here, might still fallback to main video
+            }
+        } else if (hiddenVideo.currentSrc) {
+            // Hidden video already has the correct source, assume it's ready enough or will be prepared in detectFPSDirectly
+            console.log("Hidden video source already matches main video.");
+            hiddenVideoReady = true;
+        }
+
+
+        // --- Step 2: Attempt Measurement (Hidden first, then Main) ---
+        let result = null;
+
+        if (hiddenVideoReady) {
+            state.useDirectMethod = false; // Indicate measurement is on hidden video
+            console.log("Attempting FPS measurement using hidden video...");
+            try {
+                result = await detectFPSDirectly(hiddenVideo, options);
+                 // If hidden video measurement succeeded (even if it returned default), use its result
+                 if (result) {
+                      console.log("Measurement successful using hidden video.");
+                 }
+            } catch (err) {
+                console.warn("Measurement failed on hidden video, falling back to main video. Error:", err);
+                result = null; // Ensure fallback occurs
+            }
+        } else {
+             console.log("Skipping hidden video measurement (not ready).");
+        }
+
+
+        // --- Step 3: Fallback to Main Video if necessary ---
+        if (!result || (result && result.default && !result.partial)) { // Fallback if hidden failed or gave a non-partial default
+            console.log("Falling back to FPS measurement using main video...");
+            state.useDirectMethod = true; // Indicate measurement is on main video
+            try {
+                result = await detectFPSDirectly(mainVideo, options);
+                console.log("Measurement successful using main video.");
+            } catch (err) {
+                console.error("Measurement failed on main video as well. Error:", err);
+                result = _createDefaultFpsResult(); // Final fallback to default
+            }
+        }
+
+        // --- Step 4: Final Cleanup and Return ---
+        cleanupHiddenVideo(); // Clean up hidden video regardless of success/failure
+        return result || _createDefaultFpsResult(); // Ensure a result object is always returned
+    }
+
+    /**
+     * Displays the detected FPS in the designated badge element.
+     * Adjusts FPS value to common standards (e.g., 23 -> 24).
+     *
+     * @param {number} fpsValue The raw detected FPS value.
+     */
+    function showFPSBadge(fpsValue) {
+        if (!fpsBadge) {
+            console.error("FPS badge element not provided.");
+            return;
+        }
+
+        let adjustedFPS = Math.round(fpsValue); // Start by rounding
+
+        // --- Standard FPS Adjustments ---
+        // These ranges might need tuning based on observed results
+        if (adjustedFPS >= 22 && adjustedFPS <= 24) {
+             adjustedFPS = 24;
+        } else if (adjustedFPS >= 25 && adjustedFPS <= 27) {
+             adjustedFPS = 25; // Common PAL/broadcast rate
+        } else if (adjustedFPS >= 29 && adjustedFPS <= 32) {
+             adjustedFPS = 30;
+        } else if (adjustedFPS >= 47 && adjustedFPS <= 52) {
+              adjustedFPS = 50; // Common PAL/broadcast rate
+        } else if (adjustedFPS >= 58 && adjustedFPS <= 62) {
+             adjustedFPS = 60;
+        }
+        // Add more adjustments if needed (e.g., for 48 FPS)
+
+        console.log(`Displaying FPS: ${adjustedFPS} (raw: ${fpsValue.toFixed(2)})`);
+
+        state.fps = adjustedFPS; // Update shared state
+
+        const span = fpsBadge.querySelector('span');
+        const textContent = `${adjustedFPS} FPS`;
+
+        if (span) {
+            span.textContent = textContent;
+        } else {
+             // Fallback if no span found inside the badge
+            fpsBadge.textContent = textContent;
+        }
+
+        fpsBadge.style.display = 'inline-flex'; // Use inline-flex or flex as appropriate
+
+        // Re-trigger animation for visual feedback
+        fpsBadge.style.animation = 'none';
+        // void fpsBadge.offsetWidth; // Force reflow - sometimes needed
+        requestAnimationFrame(() => { // Safer than setTimeout(..., 0/10)
+             requestAnimationFrame(() => { // Double requestAnimationFrame for robustness
+                 fpsBadge.style.animation = 'fadeInLeft 0.3s ease-out'; // Ensure animation name/duration match CSS
+             });
+        });
+    }
+
+    /**
+     * Automatically detects FPS when required (e.g., on video load).
+     * Uses cached value if available, otherwise initiates detection with retries.
+     */
+    async function autoDetectFPS() {
+        if (state.isMeasuring) {
+            console.log("FPS detection already in progress. Ignoring new request.");
+            return;
+        }
+
+        // Use cached result if valid
+        // Check for a non-default result in cache
+        if (state.cachedFPS && state.cachedFPS.fps && !state.cachedFPS.default) {
+            console.log("Using cached FPS value:", state.cachedFPS.fps);
+            showFPSBadge(state.cachedFPS.fps);
+            return;
+        } else if (state.cachedFPS && state.cachedFPS.fps) {
+             console.log("Using cached (but potentially default) FPS value:", state.cachedFPS.fps);
+             showFPSBadge(state.cachedFPS.fps);
+             // Optionally, you could still re-trigger detection if the cached value is default
+             // if (!state.cachedFPS.default) return;
+             // else console.log("Cached value was default, re-detecting...");
+             return; // For now, always use cache if it exists
+        }
+
+
+        console.log("Initiating automatic FPS detection.");
+        if (fpsBadge) {
+            const span = fpsBadge.querySelector('span');
+            if (span) span.textContent = "Detecting...";
+            else fpsBadge.textContent = "Detecting...";
+            fpsBadge.style.display = 'inline-flex'; // Show "Detecting..."
+        }
+
+        fpsDetectionRetries = 0; // Reset retry count for new detection sequence
+        await tryDetectFPS(); // Start the detection process
+    }
+
+    /**
+     * Attempts FPS detection with a retry mechanism.
+     * @private
+     */
+    async function tryDetectFPS() {
+        console.log(`Attempting FPS detection (Try ${fpsDetectionRetries + 1}/${MAX_RETRIES + 1})`);
+
+        try {
+            if (!videoPlayer.currentSrc) {
+                throw new Error("Main video has no source.");
+            }
+
+            const result = await detectVideoFPS(videoPlayer, {
+                // Pass options like onComplete directly
+                onComplete: (completedResult) => {
+                     // Only cache valid, non-error results (even if default)
+                     if (completedResult && completedResult.fps) {
+                           console.log("Caching FPS result:", completedResult);
+                           state.cachedFPS = completedResult;
+                           showFPSBadge(completedResult.fps);
+                     } else {
+                          console.warn("Measurement completed but result seems invalid, not caching.", completedResult);
+                     }
+                }
+            });
+
+             // Check if detectVideoFPS itself returned a valid result (it should always return something)
+            if (!result || !result.fps) {
+                 // This case should ideally be handled within detectVideoFPS returning a default
+                 console.error("Detection process finished but yielded no valid result object.");
+                 throw new Error("Detection yielded invalid result."); // Trigger retry/fallback
+            }
+
+            console.log(`FPS detection attempt ${fpsDetectionRetries + 1} successful. FPS: ${result.fps}`);
+            // Success, no need to retry further. Result handled by onComplete.
+            // Clear any pending retry timeout just in case
+             if (retryTimeoutId) {
+                clearTimeout(retryTimeoutId);
+                retryTimeoutId = null;
+            }
+
+        } catch (err) {
+            console.error(`Error during FPS detection attempt ${fpsDetectionRetries + 1}:`, err);
+
+            if (fpsDetectionRetries < MAX_RETRIES) {
+                fpsDetectionRetries++;
+                console.log(`Scheduling retry ${fpsDetectionRetries} in ${RETRY_DELAY}ms...`);
+
+                if (retryTimeoutId) clearTimeout(retryTimeoutId); // Clear previous timeout if exists
+
+                retryTimeoutId = setTimeout(async () => {
+                    retryTimeoutId = null; // Clear the ID once the timeout executes
+                    await tryDetectFPS(); // Use await here if needed, though likely not necessary
+                }, RETRY_DELAY);
+
+            } else {
+                console.error(`FPS detection failed after ${MAX_RETRIES + 1} attempts. Using default FPS: ${DEFAULT_FPS}.`);
+                 // Set final default state
+                state.fps = DEFAULT_FPS;
+                state.cachedFPS = _createDefaultFpsResult(); // Cache the default result
+                if (fpsBadge) {
+                    const span = fpsBadge.querySelector('span');
+                    const textContent = `${DEFAULT_FPS} FPS`;
+                    if (span) span.textContent = textContent;
+                    else fpsBadge.textContent = textContent;
+                    fpsBadge.style.display = 'inline-flex'; // Ensure badge shows default
+                     // Optionally trigger animation for the default value as well
+                }
+                // Ensure state reflects measurement stopped
+                 state.isMeasuring = false;
+                 if (state.measuringTimeout) {
+                     clearTimeout(state.measuringTimeout);
+                     state.measuringTimeout = null;
+                 }
+                 cleanupHiddenVideo(); // Ensure cleanup on final failure
+            }
+        }
+    }
+
+    // --- Public API ---
+    return {
+        detectFPSDirectly, // Expose for potential direct use/testing
+        detectVideoFPS,    // Main detection function
+        cleanupHiddenVideo,// Allow manual cleanup if needed
+        showFPSBadge,      // Allow manual update of badge
+        autoDetectFPS      // Primary function to trigger detection
+    };
+}
+
+// --- Module Export ---
+// CommonJS/Node export
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { setupFpsDetection };
+}
+// Browser global export (optional)
+// else if (typeof window !== 'undefined') {
+//    window.setupFpsDetection = setupFpsDetection;
+// }
+```
