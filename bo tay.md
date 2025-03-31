@@ -2539,7 +2539,38 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { setupFpsDetection };
 }
 // Browser global export (optional)
+
 // else if (typeof window !== 'undefined') {
 //    window.setupFpsDetection = setupFpsDetection;
 // }
 ```
+
+![image](https://github.com/user-attachments/assets/27f33d94-b478-4c37-acda-e7a8ad386fe9)
+
+![image](https://github.com/user-attachments/assets/8cec76c8-8d12-42bc-a6d0-99cdfd0f2270)
+
+![image](https://github.com/user-attachments/assets/393a804b-2959-4474-8d1a-0199eb592218)
+
+
+![image](https://github.com/user-attachments/assets/3126c939-cb27-4f5f-a6f7-86eef57fbf85)
+
+
+![image](https://github.com/user-attachments/assets/0731f03a-4b07-4632-a70c-1b78a4db0886)
+
+
+![image](https://github.com/user-attachments/assets/7b67f242-324b-44af-b3a3-cedd8ed24ec2)
+
+
+
+![image](https://github.com/user-attachments/assets/878693e0-e33e-4aef-b52d-8a2a888817ef)
+
+![image](https://github.com/user-attachments/assets/da339945-40dd-4fe8-a70e-deec6338ea14)
+
+
+
+
+
+
+
+
+
