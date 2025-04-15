@@ -1,0 +1,50 @@
+<idea-plugin>
+    <id>com.example.demo</id>
+    <name>Android Mirror Screen</name>
+    <vendor>YourCompanyName</vendor>
+    <description><![CDATA[
+        Plugin hiển thị mirror screen cho thiết bị Android.
+        <br><br>
+        <b>Tính năng:</b>
+        <ul>
+            <li>Hiển thị màn hình thiết bị Android trong IDE</li>
+            <li>Chụp ảnh màn hình và lưu vào máy tính</li>
+            <li>Tích hợp với scrcpy để hiển thị màn hình chất lượng cao và điều khiển thiết bị</li>
+            <li>Hỗ trợ nhiều thiết bị và cấu hình</li>
+        </ul>
+        <br>
+        <b>Yêu cầu:</b>
+        <ul>
+            <li>Android SDK Platform Tools (ADB)</li>
+            <li>Scrcpy (tùy chọn, cho tính năng mirror chất lượng cao)</li>
+        </ul>
+    ]]></description>
+    <version>1.0</version>
+    <change-notes><![CDATA[
+        Phiên bản 1.0:
+        <ul>
+            <li>Chức năng chụp màn hình thiết bị Android</li>
+            <li>Chức năng hiển thị màn hình theo thời gian thực</li>
+            <li>Tích hợp scrcpy cho hiển thị chất lượng cao</li>
+            <li>Lưu ảnh chụp màn hình</li>
+        </ul>
+    ]]></change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Android Mirror"
+                    anchor="right"
+                    factoryClass="com.example.demo.MirrorToolWindowFactory"
+                    icon="/icons/mirror.svg"/>
+    </extensions>
+
+    <actions>
+        <action id="com.example.demo.RefreshMirrorAction"
+                class="com.example.demo.RefreshMirrorAction"
+                text="Open Android Mirror"
+                description="Open Android mirror screen tool">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
