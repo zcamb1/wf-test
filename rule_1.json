@@ -1,0 +1,114 @@
+{
+  "stepRules": [
+    {
+      "id": "VoiceRecorder_call_transcription_test",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 10001,
+      "targetAppPackages": [
+        {
+          "packageName": "com.sec.android.app.voicenote",
+          "minAppVersion": 2021571100
+        }
+      ],
+      "landingUri": "android-app://com.sec.android.app.voicenote#Intent;launchFlags=0x14000000;component=com.sec.android.app.voicenote/com.sec.android.app.voicenote.main.VNMainActivity;end",
+      "utterances": [
+        "Test rule for layout verification"
+      ],
+      "preConditions": [
+        ""
+      ],
+      "edgeColor": "#4287f5",
+      "steps": [
+        {
+          "id": "start_node",
+          "screenId": "test.StartScreen",
+          "guideContent": "This is a test start node",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Start"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_1",
+            "sub_step_1"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "main_step_1",
+          "screenId": "test.MainScreen1",
+          "guideContent": "This is main step 1",
+          "layoutMatchers": [
+            {
+              "matchTarget": "class_name",
+              "matchOperand": "android.widget.Button"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_2", 
+            "sub_step_2"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "main_step_2",
+          "screenId": "test.MainScreen2",
+          "guideContent": "This is main step 2",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Continue"
+            }
+          ],
+          "nextStepIds": [
+            "end_node"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "sub_step_1",
+          "screenId": "test.SubScreen1",
+          "guideContent": "This is sub step 1",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Subflow"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_1"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_step_2",
+          "screenId": "test.SubScreen2",
+          "guideContent": "This is sub step 2",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Alternative"
+            }
+          ],
+          "nextStepIds": [
+            "end_node"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "end_node",
+          "screenId": "test.EndScreen",
+          "guideContent": "This is the end node",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Finish"
+            }
+          ],
+          "isSubStep": false
+        }
+      ]
+    }
+  ]
+}

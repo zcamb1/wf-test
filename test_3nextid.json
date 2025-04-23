@@ -1,0 +1,85 @@
+{
+  "stepRules": [
+    {
+      "id": "test_3nextid",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 10001,
+      "targetAppPackages": [
+        {
+          "packageName": "com.example.testapp",
+          "minAppVersion": 1000000
+        }
+      ],
+      "landingUri": "android-app://com.example.testapp#Intent;launchFlags=0x14000000;component=com.example.testapp/com.example.testapp.MainActivity;end",
+      "utterances": [
+        "Test case with multiple connections and sub nodes"
+      ],
+      "preConditions": [
+        ""
+      ],
+      "edgeColor": "#333333",
+      "steps": [
+        {
+          "id": "node_A",
+          "screenId": "test.NodeAScreen",
+          "guideContent": "Main Node A with multiple connections",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Main Node A"
+            }
+          ],
+          "nextStepIds": [
+            "node_B",
+            "sub_1",
+            "sub_2"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "node_B",
+          "screenId": "test.NodeBScreen",
+          "guideContent": "Destination main node",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Main Node B"
+            }
+          ],
+          "nextStepIds": [],
+          "isSubStep": false
+        },
+        {
+          "id": "sub_1",
+          "screenId": "test.Sub1Screen",
+          "guideContent": "First sub node connecting to main node B",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Sub Node 1"
+            }
+          ],
+          "nextStepIds": [
+            "node_B"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_2",
+          "screenId": "test.Sub2Screen",
+          "guideContent": "Second sub node connecting to main node B",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Sub Node 2"
+            }
+          ],
+          "nextStepIds": [
+            "node_B"
+          ],
+          "isSubStep": true
+        }
+      ]
+    }
+  ]
+} 

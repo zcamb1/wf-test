@@ -1,0 +1,185 @@
+Project Name: Rule Maker Plugin
+Overview:
+The Rule Maker is an Android Studio plugin designed to assist app developers and QA engineers in creating, editing, testing, and visualizing step-based interactive rules for guiding users through app features. These rules are represented in JSON format, with each step comprising Natural Language Generation (NLG) text, UI element references, actions, and connections to subsequent steps. The plugin integrates closely with a mirrored device screen and supports WYSIWYG (What You See Is What You Get) interaction.
+
+For android studio, one need to know intellij Plugin development framework & APIs.
+
+o   (Kotlin preferred)
+
+o   Build Tool: Gradle (via gradle-intellij-plugin)
+
+o   Auto update mechanism
+
+Target Users:
+·       Native App Developers
+
+§  Gallery
+
+§  Voice Recorder
+
+§  Video Editor
+
+§  Photo Editor
+
+§  Samsung Notes
+
+§  etc
+
+·       QA Engineers
+
+ 
+
+Key Features:
+1.    Authentication
+·       Plugin access is restricted to authenticated users only.
+
+·       Custom Login window / Supports login via company SSO.
+
+·       Caching and secure storage of authentication state.
+
+ 
+
+2.    Plugin Interface Components
+2.1. Rule Editor Window
+·       Editor to view and modify rules.
+
+·       Support for:
+
+o   Creating new / Edit / Delete steps
+
+o   Drag and Drop options for reordering the steps
+
+o   Opening and editing existing rule JSON files.
+
+o   Navigating between steps (forward/backward).
+
+o   WYSIWYG editing of:
+
+§  Step ID
+
+§  NLG (natural language guidance) text
+
+§  Action type (e.g., "tap", “swipe (left/right/up/down)”)
+
+§  Target layout match (e.g., resource-id=com.example:id/start)
+
+§  Screen ID
+
+§  Next Step IDs
+
+o   Auto-highlighting associated UI elements on the mirrored screen.
+
+o   Saving and exporting the rule.
+
+2.2 Screen Mirroring Panel
+·       Real-time mirroring of the connected Android device via ADB.
+
+o   Tools like scrcpy can be used (https://github.com/Genymobile/scrcpy )
+
+·       Features:
+
+o   Screen refresh and orientation detection.
+
+o   Overlay of layout data (fetched from Bixby Client via accessibility or custom layout API).
+
+o   View selection to auto fill the details
+
+o   Layout data should be pruned with Level 1 information (What you see on screen)
+
+o   Widget highlighting with selection support.
+
+o   Support for Layout inspection
+
+o   Manual or automatic matching of UI elements with rule steps.
+
+2.3. Visual Graph Editor
+·       Interactive graph representation of rule steps.
+
+·       Each step visualized as a node.
+
+·       Connectors/Edges represent transitions (next step IDs).
+
+·       Users can:
+
+o   Add/remove steps directly from the graph.
+
+o   Rearrange nodes for clarity.
+
+o   Click a node to edit step details in Rule Editor.
+
+o   Visual cues for start/end steps and branching logic.
+
+·       Reference : https://github.com/jgraph/jgraphx
+
+                                   https://graphstream-project.org/
+
+2.4. Log Window
+·       Real-time logs of plugin activity:
+
+o   ADB connection status
+
+o   Screen mirror status
+
+o   Layout fetch results
+
+o   Rule execution results
+
+·       Toggleable verbosity (info/debug/warning/error).
+
+ 
+
+3.    Rule Data Format (JSON)
+ 
+
+ 
+
+ 
+
+Example Json: {
+  "utterance": "How to start?",
+  "steps": [
+    {
+      "step_id": 1,
+      "nlg": "Tap the Start button",
+      "screen_id": "activity_main",
+      "layout_match": "resource-id=com.example:id/start",
+      "action": "tap",
+      "next_step_ids": [2]
+    },
+    {
+      "step_id": 2,
+      "nlg": "Now click on Continue",
+      "screen_id": "activity_secondary",
+      "layout_match": "resource-id=com.example:id/continue",
+      "action": "tap",
+      "next_step_ids": []
+    }
+  ]
+}
+ 
+
+4.    Export Options
+·       Allow user to input json file name
+
+·       Export final rule as a .json file.
+
+·       Includes:
+
+o   Rule name or input utterance
+
+o   All defined steps
+
+5.    Editing & Retesting Workflow
+·       Load existing rule JSON file.
+
+·       Select a step → highlights corresponding UI on the mirrored screen.
+
+·       Modify attributes (NLG, layout match, action, next steps).
+
+·       Save changes.
+
+·       Optionally re-test rule against connected app:
+
+o   Rule execution simulated or run on-device via client API.
+
+o   Log success/failure in Log Window.

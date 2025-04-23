@@ -1,0 +1,160 @@
+{
+  "stepRules": [
+    {
+      "id": "VoiceRecorder_call_transcription_01",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 10000,
+      "targetAppPackages": [
+        {
+          "packageName": "com.sec.android.app.voicenote",
+          "minAppVersion": 2021571100
+        }
+      ],
+      "landingUri": "android-app://com.sec.android.app.voicenote#Intent;launchFlags=0x14000000;component=com.sec.android.app.voicenote/com.sec.android.app.voicenote.main.VNMainActivity;end",
+      "utterances": [
+        "Is there a way to see the text of the call I just had"
+      ],
+      "preConditions": [
+        ""
+      ],
+      "steps": [
+        {
+          "id": "no_recording",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "guideContent": "There is no audio file. Please prepare an audio file and try again.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "There is no recording file."
+            }
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "list_recording",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "guideContent": "Please select the call recording file you want to convert to text.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "class_name",
+              "matchOperand": "android.widget.ImageButton"
+            },
+            {
+              "matchTarget": "content_description",
+              "matchOperand": "Play",
+              "matchCriteria": "contains"
+            }
+          ],
+          "nextStepIds": [
+            "recording",
+            "recording_already_transcripted"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "onboarding",
+          "screenId": "com.sec.android.app.voicenote.main.AiFtuActivity",
+          "guideContent": "Please follow the instructions on the screen.",
+          "nextStepIds": [
+            "no_recording",
+            "list_recording"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "recording_already_transcripted",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "guideContent": "This recording has already been converted. Please select the next audio file and start again.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Audio content"
+            }
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "recording",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "guideContent": "Press the \"Convert to Text\" button.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Convert to Text",
+              "highlightType": "click"
+            }
+          ],
+          "transitionCondition": "layout_match_delay",
+          "nextStepIds": [
+            "language_selection",
+            "transcription"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "language_selection",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "screenMatcher": "2",
+          "guideContent": "Please select the language to convert and press the \"Text Conversion\" button.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Text Conversion",
+              "highlightType": "click"
+            }
+          ],
+          "nextStepIds": [
+            "transcription"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "transcription",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "screenMatcher": "1",
+          "guideContent": "Text conversion is starting.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Cancel"
+            }
+          ],
+          "nextStepIds": [
+            "transcription_completed",
+            "transcription_canceled"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "transcription_canceled",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "screenMatcher": "1",
+          "guideContent": "Press the \"Convert to Text\" button.",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Convert to text",
+              "matchCriteria": "contains"
+            }
+          ],
+          "nextStepIds": [
+            "transcription"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "transcription_completed",
+          "screenId": "com.sec.android.app.voicenote.main.VNMainActivity",
+          "screenMatcher": "1",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Audio content"
+            }
+          ],
+          "isSubStep": false
+        }
+      ]
+    }
+  ]
+}

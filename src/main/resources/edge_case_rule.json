@@ -1,0 +1,65 @@
+{
+  "stepRules": [
+    {
+      "id": "edge_case_rule",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 1,
+      "steps": [
+        {
+          "id": "step with spaces",
+          "screenId": "com.example.app.screens.SpacesScreen",
+          "guideContent": "This step ID has spaces which might cause issues",
+          "nextStepIds": ["long_id_step_with_very_long_name_that_might_overflow_in_ui_display_rendering_components"]
+        },
+        {
+          "id": "long_id_step_with_very_long_name_that_might_overflow_in_ui_display_rendering_components",
+          "screenId": "com.example.app.screens.LongIdScreen",
+          "guideContent": "This step has a very long ID that might cause UI overflow issues",
+          "nextStepIds": ["special_chars"]
+        },
+        {
+          "id": "special_chars",
+          "screenId": "com.example.app.screens.SpecialCharsScreen",
+          "guideContent": "Contains special characters: !@#$%^&*()",
+          "nextStepIds": ["step_with_html"]
+        },
+        {
+          "id": "step_with_html",
+          "screenId": "com.example.screens.HtmlScreen",
+          "guideContent": "<b>This has HTML</b> that might need <i>escaping</i> in the <a href='#'>UI</a>",
+          "nextStepIds": ["duplicate_reference"]
+        },
+        {
+          "id": "duplicate_reference",
+          "screenId": "com.example.app.screens.DuplicateRefScreen",
+          "guideContent": "This step has duplicate next step IDs",
+          "nextStepIds": ["duplicate_target", "duplicate_target"]
+        },
+        {
+          "id": "duplicate_target",
+          "screenId": "com.example.app.screens.DuplicateTargetScreen",
+          "guideContent": "This step is referenced twice by another step",
+          "nextStepIds": ["self_reference"]
+        },
+        {
+          "id": "self_reference",
+          "screenId": "com.example.app.screens.SelfReferenceScreen",
+          "guideContent": "This step references itself",
+          "nextStepIds": ["self_reference", "multiple_incoming"]
+        },
+        {
+          "id": "multiple_incoming",
+          "screenId": "com.example.app.screens.MultipleIncomingScreen",
+          "guideContent": "This step is referenced by multiple other steps",
+          "nextStepIds": []
+        },
+        {
+          "id": "non_existent_ref",
+          "screenId": "com.example.app.screens.NonExistentRefScreen",
+          "guideContent": "This step references a non-existent step",
+          "nextStepIds": ["this_step_doesnt_exist"]
+        }
+      ]
+    }
+  ]
+} 

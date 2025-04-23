@@ -1,0 +1,146 @@
+{
+  "stepRules": [
+    {
+      "id": "complex_bidirectional_test",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 10002,
+      "targetAppPackages": [
+        {
+          "packageName": "com.test.app",
+          "minAppVersion": 1000000
+        }
+      ],
+      "landingUri": "android-app://com.test.app",
+      "utterances": [
+        "Test for complex bidirectional flow"
+      ],
+      "preConditions": [],
+      "edgeColor": "#4287f5",
+      "steps": [
+        {
+          "id": "entry_point",
+          "screenId": "test.EntryScreen",
+          "guideContent": "Entry point of the flow",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Start"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_1",
+            "sub_step_A"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "main_step_1",
+          "screenId": "test.MainScreen1",
+          "guideContent": "First main step",
+          "layoutMatchers": [
+            {
+              "matchTarget": "id",
+              "matchOperand": "button_main_1"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_2",
+            "sub_step_B"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "main_step_2",
+          "screenId": "test.MainScreen2",
+          "guideContent": "Second main step",
+          "layoutMatchers": [
+            {
+              "matchTarget": "id",
+              "matchOperand": "button_main_2"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_3",
+            "sub_step_C"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "main_step_3",
+          "screenId": "test.MainScreen3",
+          "guideContent": "Third main step",
+          "layoutMatchers": [
+            {
+              "matchTarget": "id",
+              "matchOperand": "button_main_3"
+            }
+          ],
+          "nextStepIds": [
+            "exit_point"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "sub_step_A",
+          "screenId": "test.SubScreenA",
+          "guideContent": "Sub step A",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "SubA"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_1"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_step_B",
+          "screenId": "test.SubScreenB",
+          "guideContent": "Sub step B",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "SubB"
+            }
+          ],
+          "nextStepIds": [
+            "sub_step_C",
+            "main_step_1"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_step_C",
+          "screenId": "test.SubScreenC",
+          "guideContent": "Sub step C",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "SubC"
+            }
+          ],
+          "nextStepIds": [
+            "main_step_2",
+            "sub_step_B"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "exit_point",
+          "screenId": "test.ExitScreen",
+          "guideContent": "Exit point of the flow",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Finish"
+            }
+          ],
+          "nextStepIds": [],
+          "isSubStep": false
+        }
+      ]
+    }
+  ]
+}

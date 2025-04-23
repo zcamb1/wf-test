@@ -1,0 +1,24 @@
+<idea-plugin>
+    <id>com.example.rulemaker</id>
+    <name>Rule Maker</name>
+    <vendor>Example</vendor>
+    <description><![CDATA[
+        Rule Maker Plugin for creating, editing, and managing step-based rules.
+        <br>
+        This plugin provides a visual graph editor for creating and managing rules that guide users through app features.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.android</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Rule Maker" 
+                    icon="/icons/rulemaker.svg" 
+                    anchor="right" 
+                    factoryClass="com.example.rulemaker.RuleMakerToolWindowFactory"/>
+    </extensions>
+
+    <actions>
+        <!-- No actions defined at this time -->
+    </actions>
+</idea-plugin>

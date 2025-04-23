@@ -1,0 +1,23 @@
+{
+  "stepRules": [
+    {
+      "id": "test_rule",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 1,
+      "steps": [
+        {
+          "id": "transcription_completed",
+          "screenId": "com.example.app.screens.TranscriptionCompleted",
+          "guideContent": "This is the transcription completed screen",
+          "nextStepIds": ["no_recordingg"]
+        },
+        {
+          "id": "no_recordingg",
+          "screenId": "com.example.app.screens.NoRecording",
+          "guideContent": "This is the no recording screen",
+          "nextStepIds": []
+        }
+      ]
+    }
+  ]
+} 

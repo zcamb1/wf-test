@@ -1,0 +1,160 @@
+{
+  "stepRules": [
+    {
+      "id": "multi_level_branching_test",
+      "ruleSpecVersion": 1,
+      "ruleVersion": 10003,
+      "targetAppPackages": [
+        {
+          "packageName": "com.test.app",
+          "minAppVersion": 1000000
+        }
+      ],
+      "landingUri": "android-app://com.test.app",
+      "utterances": [
+        "Test for multi-level branching"
+      ],
+      "preConditions": [],
+      "edgeColor": "#ff6600",
+      "steps": [
+        {
+          "id": "start",
+          "screenId": "test.StartScreen",
+          "guideContent": "Starting point",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Start"
+            }
+          ],
+          "nextStepIds": [
+            "node_A"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "node_A",
+          "screenId": "test.NodeA",
+          "guideContent": "Main node A",
+          "layoutMatchers": [
+            {
+              "matchTarget": "id",
+              "matchOperand": "button_A"
+            }
+          ],
+          "nextStepIds": [
+            "node_B",
+            "sub_1"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "node_B",
+          "screenId": "test.NodeB",
+          "guideContent": "Main node B",
+          "layoutMatchers": [
+            {
+              "matchTarget": "id",
+              "matchOperand": "button_B"
+            }
+          ],
+          "nextStepIds": [
+            "node_C",
+            "sub_3"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "node_C",
+          "screenId": "test.NodeC",
+          "guideContent": "Main node C",
+          "layoutMatchers": [
+            {
+              "matchTarget": "id",
+              "matchOperand": "button_C"
+            }
+          ],
+          "nextStepIds": [
+            "end"
+          ],
+          "isSubStep": false
+        },
+        {
+          "id": "sub_1",
+          "screenId": "test.Sub1",
+          "guideContent": "Sub node 1",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Sub1"
+            }
+          ],
+          "nextStepIds": [
+            "sub_2",
+            "node_A"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_2",
+          "screenId": "test.Sub2",
+          "guideContent": "Sub node 2",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Sub2"
+            }
+          ],
+          "nextStepIds": [
+            "node_B",
+            "sub_3"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_3",
+          "screenId": "test.Sub3",
+          "guideContent": "Sub node 3",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Sub3"
+            }
+          ],
+          "nextStepIds": [
+            "sub_4"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "sub_4",
+          "screenId": "test.Sub4",
+          "guideContent": "Sub node 4",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "Sub4"
+            }
+          ],
+          "nextStepIds": [
+            "node_C"
+          ],
+          "isSubStep": true
+        },
+        {
+          "id": "end",
+          "screenId": "test.EndScreen",
+          "guideContent": "End point",
+          "layoutMatchers": [
+            {
+              "matchTarget": "text",
+              "matchOperand": "End"
+            }
+          ],
+          "nextStepIds": [],
+          "isSubStep": false
+        }
+      ]
+    }
+  ]
+}
