@@ -35,6 +35,8 @@ class RuleMakerWindow(private val project: Project) : JPanel(BorderLayout()) {
     
     private val ruleParser = RuleParser()
     private var currentRule: Rule? = null
+    private val ruleHistory = ArrayDeque<Rule>()
+
     
     // UI components
     private val editorPanel = EditorPanel(::onStepUpdated, null)
@@ -94,7 +96,7 @@ class RuleMakerWindow(private val project: Project) : JPanel(BorderLayout()) {
         
         // Create graph panel with border
         val graphPanelWithBorder = JPanel(BorderLayout()).apply {
-            add(JBScrollPane(graphPanel), BorderLayout.CENTER)
+            add(graphPanel, BorderLayout.CENTER)
             border = BorderFactory.createTitledBorder(
                 BorderFactory.createEtchedBorder(),
                 "Graph Panel",
@@ -143,6 +145,8 @@ class RuleMakerWindow(private val project: Project) : JPanel(BorderLayout()) {
         // Set default size
         preferredSize = Dimension(1000, 700)
     }
+
+    
     
     /**
      * Create action group for toolbar.
