@@ -42,7 +42,8 @@ class RuleMakerWindow(private val project: Project) : JPanel(BorderLayout()) {
         onStepSelected = ::onStepSelected,
         onAddStep = ::onAddStep, 
         onAddSubStep = ::onAddSubStep,
-        onRemoveStep = ::onRemoveStep
+        onRemoveStep = ::onRemoveStep,
+        onSwapNode = ::onSwapNode
     )
     
     // New UI components for improved layout
@@ -343,6 +344,54 @@ class RuleMakerWindow(private val project: Project) : JPanel(BorderLayout()) {
         logMessagePanel.text += "Added new step: ${newStep.id}\n"
     }
 
+    private fun onSwapNode(stepA: Step, swapId: String) {
+        val rule = currentRule ?: return
+        val stepB = rule.steps.find { it.id == swapId }
+        if (stepB == null) {
+            JOptionPane.showMessageDialog(this, "Node with ID '$swapId' not found.", "Swap Node", JOptionPane.ERROR_MESSAGE)
+            return
+        }
+        // Cho phép swap giữa mọi loại node (main <-> sub)
+        swapNodes(rule, stepA, stepB)
+        graphPanel.refreshGraph()
+        logMessagePanel.text += "Swapped node ${stepA.id} with ${stepB.id}\n"
+    }
+
+    private fun swapNodes(rule: Rule, stepA: Step, stepB: Step) {
+        // 1. Swap thuộc tính isSubStep
+        val tmpIsSub = stepA.isSubStep
+        stepA.isSubStep = stepB.isSubStep
+        stepB.isSubStep = tmpIsSub
+    
+        // 2. Swap nextStepIds
+        val tmpNext = stepA.nextStepIds.toList()
+        stepA.nextStepIds.clear()
+        stepA.nextStepIds.addAll(stepB.nextStepIds)
+        stepB.nextStepIds.clear()
+        stepB.nextStepIds.addAll(tmpNext)
+    
+        // 3. Cập nhật các node khác trỏ tới A hoặc B
+        for (step in rule.steps) {
+            for (i in step.nextStepIds.indices) {
+                if (step.nextStepIds[i] == stepA.id) step.nextStepIds[i] = stepB.id
+                else if (step.nextStepIds[i] == stepB.id) step.nextStepIds[i] = stepA.id
+            }
+        }
+    
+        // 4. Swap vị trí hiển thị (geometry)
+        val cellA = graphPanel.getCellForStep(stepA.id)
+        val cellB = graphPanel.getCellForStep(stepB.id)
+        if (cellA != null && cellB != null) {
+            val geoA = graphPanel.getCellGeometry(cellA)
+            val geoB = graphPanel.getCellGeometry(cellB)
+            if (geoA != null && geoB != null) {
+                val newGeoA = geoB.clone() as mxGeometry
+                val newGeoB = geoA.clone() as mxGeometry
+                graphPanel.setCellGeometry(cellA, newGeoA)
+                graphPanel.setCellGeometry(cellB, newGeoB)
+            }
+        }
+    }
     
     /**
      * Callback to add a sub-step to a parent step.

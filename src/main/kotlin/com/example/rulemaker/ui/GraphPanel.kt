@@ -33,7 +33,8 @@ class GraphPanel(
     private val onStepSelected: (Step) -> Unit,
     private val onAddStep: (Step?, mxCell?, mxGeometry?) -> Unit,
     private val onAddSubStep: (Step) -> Unit,
-    private val onRemoveStep: (Step) -> Boolean
+    private val onRemoveStep: (Step) -> Boolean,
+    private val onSwapNode: (Step, String) -> Unit
 ) : JPanel(BorderLayout()) {
     
     private val LOG = Logger.getInstance(GraphPanel::class.java)
@@ -66,27 +67,6 @@ class GraphPanel(
     private val debugButton = JButton("Show Debug Info").apply {
         addActionListener {
             showDebugInfo()
-        }
-    }
-    
-    // Debug text area and scroll pane for showing coordinates
-    private val debugTextArea = JTextArea().apply {
-        isEditable = false
-        rows = 10
-        font = Font("Monospaced", Font.PLAIN, 12)
-    }
-    
-    private val debugScrollPane = JScrollPane(debugTextArea).apply {
-        preferredSize = Dimension(200, 150)
-        border = BorderFactory.createTitledBorder("Node Coordinates")
-    }
-    
-    // Button to toggle coordinate display
-    private val showCoordsButton = JButton("Toggle Coords").apply {
-        addActionListener {
-            debugScrollPane.isVisible = !debugScrollPane.isVisible
-            revalidate()
-            repaint()
         }
     }
     
@@ -126,19 +106,14 @@ class GraphPanel(
         // Create panel for controls
         val controlPanel = JPanel(FlowLayout(FlowLayout.LEFT))
         controlPanel.add(debugButton)
-        controlPanel.add(showCoordsButton)
         
         // Add components to panel
         add(controlPanel, BorderLayout.NORTH)
         add(graphComponent, BorderLayout.CENTER)
-        add(debugScrollPane, BorderLayout.EAST)
-        
-        // Hide coordinate panel by default
-        debugScrollPane.isVisible = false
         
         // Add listener to update coordinates when cells are moved
         graph.addListener("cellsMoved") { sender, evt ->
-            updateCoordinateDisplay()
+            // updateCoordinateDisplay() call removed
         }
         
         // Add mouse listener for selecting cells
@@ -151,13 +126,7 @@ class GraphPanel(
                         if (step != null) {
                             onStepSelected(step)
                             
-                            // Show coordinates of selected cell
-                            val geo = graph.getCellGeometry(cell)
-                            if (geo != null) {
-                                val nodeType = if (step.isSubStep) "Sub" else "Main"
-                                val msg = "Selected ${step.id} ($nodeType)\nPosition: x=${geo.x.toInt()}, y=${geo.y.toInt()}\nSize: w=${geo.width.toInt()}, h=${geo.height.toInt()}"
-                                JOptionPane.showMessageDialog(graphComponent, msg, "Node Coordinates", JOptionPane.INFORMATION_MESSAGE)
-                            }
+                            // Remove coordinate display dialog when clicking on a node
                         }
                     }
                 }
@@ -393,7 +362,6 @@ class GraphPanel(
             }
             
             // Log new bounds
-            updateCoordinateDisplay()
             LOG.info("Translation complete")
         }
         
@@ -486,8 +454,6 @@ class GraphPanel(
             // Translate graph and ensure all nodes are visible
             ensureNodesVisible()
             
-            // Update the coordinate display
-            updateCoordinateDisplay()
         } finally {
             graph.model.endUpdate()
         }
@@ -762,7 +728,7 @@ class GraphPanel(
      * Position the main flow nodes horizontally from left to right.
      */
     private fun positionMainFlow(mainFlowPath: List<String>) {
-        val xSpacing = 400.0  // Giảm khoảng cách cơ bản xuống để tối ưu hơn (từ 450 xuống 350)
+        val xSpacing = 500.0  // Giảm khoảng cách cơ bản xuống để tối ưu hơn (từ 450 xuống 350)
         val mainFlowY = 200.0  // Vị trí Y của dòng chính
         
         LOG.info("Positioning main flow nodes horizontally")
@@ -799,7 +765,7 @@ class GraphPanel(
         positionSubNodes()
         
         // Update coordinate display
-        updateCoordinateDisplay()
+        // updateCoordinateDisplay() call removed
     }
 
     
@@ -842,7 +808,7 @@ class GraphPanel(
                 if (subGeo != null) {
                     val newGeo = subGeo.clone() as mxGeometry
                     // Đặt bên phải parent
-                    newGeo.x = parentGeo.x + parentGeo.width + 80
+                    newGeo.x = parentGeo.x + parentGeo.width + 120
 
                     val isBidirectional = rule.steps.find { it.id == subNodeId }?.nextStepIds?.contains(parentId) == true
                     if (isBidirectional) {
@@ -867,7 +833,7 @@ class GraphPanel(
     
         // Xử lý các sub-node chưa được xử lý (nếu có)
     
-        updateCoordinateDisplay()
+        // updateCoordinateDisplay() call removed
     }
     
     
@@ -1013,6 +979,15 @@ class GraphPanel(
             }
         }
         popup.add(removeItem)
+
+        val swapItem = JMenuItem("Swap Node")
+        swapItem.addActionListener {
+            val swapId = JOptionPane.showInputDialog(this, "Enter ID of node to swap with:", "Swap Node", JOptionPane.QUESTION_MESSAGE)
+            if (swapId != null && swapId.isNotBlank()) {
+                onSwapNode(step, swapId.trim())
+            }
+        }
+        popup.add(swapItem)
         
         // Debug menu for connections
         val showConnectionsItem = JMenuItem("Debug Connections")
@@ -1021,32 +996,6 @@ class GraphPanel(
             JOptionPane.showMessageDialog(this, msg, "Step Connections", JOptionPane.INFORMATION_MESSAGE)
         }
         popup.add(showConnectionsItem)
-        
-        // Add coordinate info and copy option
-        val cell = stepToCellMap[step.id]
-        if (cell != null) {
-            val geo = graph.getCellGeometry(cell)
-            if (geo != null) {
-                popup.addSeparator()
-                val coordsItem = JMenuItem("Show Coordinates")
-                coordsItem.addActionListener {
-                    val nodeType = if (step.isSubStep) "Sub" else "Main"
-                    val coordMsg = "Node: ${step.id} ($nodeType)\nPosition: x=${geo.x.toInt()}, y=${geo.y.toInt()}\nSize: w=${geo.width.toInt()}, h=${geo.height.toInt()}"
-                    JOptionPane.showMessageDialog(this, coordMsg, "Node Coordinates", JOptionPane.INFORMATION_MESSAGE)
-                }
-                popup.add(coordsItem)
-                
-                val copyItem = JMenuItem("Copy Coordinates")
-                copyItem.addActionListener {
-                    val coordStr = "${step.id}: x=${geo.x.toInt()}, y=${geo.y.toInt()}, w=${geo.width.toInt()}, h=${geo.height.toInt()}"
-                    val stringSelection = StringSelection(coordStr)
-                    val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-                    clipboard.setContents(stringSelection, null)
-                    JOptionPane.showMessageDialog(this, "Coordinates copied to clipboard", "Copied", JOptionPane.INFORMATION_MESSAGE)
-                }
-                popup.add(copyItem)
-            }
-        }
         
         // Add layout menu item
         popup.addSeparator()
@@ -1444,8 +1393,6 @@ class GraphPanel(
             // Khôi phục zoom level hiện tại của người dùng thay vì reset
             setZoomLevel(userZoomLevel)
             
-            // Update coordinate display
-            updateCoordinateDisplay()
         } finally {
             graph.model.endUpdate()
         }
@@ -1539,118 +1486,67 @@ class GraphPanel(
         return rule.steps.filter { !it.isSubStep }.map { it.id }
     }
 
-    private fun findNodesOnPathBetween(sourceGeo: mxGeometry, targetGeo: mxGeometry, sourceId: String, targetId: String, isSourceSubStep: Boolean): List<String> {
-        val rule = currentRule ?: return emptyList()
-        val nodesOnPath = mutableListOf<String>()
-        
-        // Xác định phía của source node (trên/dưới main flow)
-        val isSourceAbove = sourceGeo.y < 150
-        
-        // Tìm target step và source step
-        val targetStep = rule.steps.find { it.id == targetId }
-        val sourceStep = rule.steps.find { it.id == sourceId }
-        
-        // Tính tọa độ tâm của source và target
-        val sourceCenterX = sourceGeo.x + sourceGeo.width / 2
-        val targetCenterX = targetGeo.x + targetGeo.width / 2
-        
-        // Trường hợp đặc biệt: Nếu là kết nối theo chiều dọc (cùng tọa độ X tâm), bỏ qua
-        // Áp dụng cho cả kết nối từ sub-to-main và main-to-sub
-        val xDiff = Math.abs(sourceCenterX - targetCenterX)
-        if (xDiff < 30) { // Tăng dung sai lên 30px
-            val connectionType = if (isSourceSubStep && targetStep != null && !targetStep.isSubStep) 
-                                    "sub-to-main" 
-                                 else if (!isSourceSubStep && targetStep != null && targetStep.isSubStep) 
-                                    "main-to-sub"
-                                 else
-                                    "other"
-            LOG.info("Skipping path check for vertical connection (same center X) from ${sourceId} → ${targetId} [type: $connectionType, xDiff: $xDiff]")
-            return emptyList()
+    private fun findNodesOnPathBetween(
+    sourceGeo: mxGeometry,
+    targetGeo: mxGeometry,
+    sourceId: String,
+    targetId: String,
+    isSourceSubStep: Boolean
+): List<String> {
+    val rule = currentRule ?: return emptyList()
+    val nodesOnPath = mutableListOf<String>()
+
+    // Xác định phía của source node (trên/dưới main flow)
+    val isSourceAbove = sourceGeo.y < 150
+
+    // Tìm target step và source step
+    val targetStep = rule.steps.find { it.id == targetId }
+    val sourceStep = rule.steps.find { it.id == sourceId }
+
+    // Tính tọa độ tâm của source và target
+    val sourceCenterX = sourceGeo.x + sourceGeo.width / 2
+    val targetCenterX = targetGeo.x + targetGeo.width / 2
+
+    // Nếu kết nối dọc (gần như cùng X), bỏ qua
+    val xDiff = Math.abs(sourceCenterX - targetCenterX)
+    if (xDiff < 30) return emptyList()
+
+    // Nếu là kết nối sub-to-main
+    if (isSourceSubStep && targetStep != null && !targetStep.isSubStep) {
+        val subNodesOfTarget = rule.steps.filter {
+            it.isSubStep && targetStep.nextStepIds.contains(it.id)
         }
-        
-        // Nếu sub node kết nối với main node, kiểm tra trước tiên xem main node có sub node nào cùng phía với source không
-        if (isSourceSubStep && targetStep != null && !targetStep.isSubStep) {
-            // Main node đích có sub node không
-            val subNodesOfTarget = rule.steps.filter { 
-                it.isSubStep && targetStep.nextStepIds.contains(it.id)
-            }
-            
-            // Kiểm tra có sub node nào cùng phía với source node không
-            val sameDirectionSubNodes = subNodesOfTarget.filter { subNode ->
-                val subCell = stepToCellMap[subNode.id] ?: return@filter false
-                val subGeo = graph.getCellGeometry(subCell) ?: return@filter false
-                
-                // Xác định phía của sub node (trên/dưới main flow)
-                val isSubAbove = subGeo.y < 150
-                
-                // Nếu source và sub node này cùng phía, thêm vào danh sách
-                isSourceAbove == isSubAbove
-            }
-            
-            if (sameDirectionSubNodes.isNotEmpty()) {
-                LOG.info("Found ${sameDirectionSubNodes.size} sub nodes of target ${targetId} on same side as source ${sourceId}")
-                sameDirectionSubNodes.forEach { subNode ->
-                    nodesOnPath.add(subNode.id)
-                    LOG.info("Adding ${subNode.id} to path nodes automatically")
-                }
-                return nodesOnPath
-            }
+        // Chỉ coi là node chắn nếu sub node cùng phía và X <= X của main node
+        val sameDirectionSubNodes = subNodesOfTarget.filter { subNode ->
+            val subCell = stepToCellMap[subNode.id] ?: return@filter false
+            val subGeo = graph.getCellGeometry(subCell) ?: return@filter false
+            val isSubAbove = subGeo.y < 150
+            isSourceAbove == isSubAbove && subGeo.x <= targetGeo.x
         }
-        
-        // Xác định khoảng X giữa source và target
-        val minX = Math.min(sourceGeo.x, targetGeo.x)
-        val maxX = Math.max(sourceGeo.x, targetGeo.x)
-        
-        // Nếu khoảng cách X quá nhỏ, không cần kiểm tra
-        if (maxX - minX < 50) return emptyList()
-        
-        // Kiểm tra nếu đây là kết nối từ sub node đến main node
-        val isSubToMainConnection = isSourceSubStep && (targetStep?.isSubStep == false)
-        
-        // Lấy danh sách các sub node của target main node (nếu target là main node)
-        val targetMainSubNodes = if (targetStep?.isSubStep == false) {
-            rule.steps.filter { 
-                it.isSubStep && targetStep.nextStepIds.contains(it.id)
-            }.map { it.id }
-        } else {
-            emptyList()
+        if (sameDirectionSubNodes.isNotEmpty()) {
+            sameDirectionSubNodes.forEach { subNode -> nodesOnPath.add(subNode.id) }
+            return nodesOnPath
         }
-        
-        // Kiểm tra tất cả các node nằm trong khoảng X và cùng phía với source
-        for (step in rule.steps) {
-            val cell = stepToCellMap[step.id] ?: continue
-            val cellGeo = graph.getCellGeometry(cell) ?: continue
-            
-            // Bỏ qua source và target node
-            if (sourceId == step.id || targetId == step.id) continue
-            
-            // Kiểm tra node có nằm trong khoảng X hay không
-            val cellX = cellGeo.x
-            if (cellX > minX && cellX < maxX) {
-                // Kiểm tra xem node này có cùng phía với source hay không
-                val isCellAbove = cellGeo.y < 150
-                
-                // Chỉ xem xét node cùng phía
-                if (isCellAbove == isSourceAbove) {
-                    // Trong kết nối từ sub đến main, bỏ qua main nodes trừ khi là sub node của target
-                    if (isSubToMainConnection && !step.isSubStep && !targetMainSubNodes.contains(step.id)) {
-                        LOG.info("Ignoring main node ${step.id} on path from sub node ${sourceId} to main node ${targetId}")
-                        continue
-                    }
-                    
-                    // Nếu là sub node của target main node, vẫn thêm vào danh sách để tạo đường đi vòng
-                    if (targetMainSubNodes.contains(step.id)) {
-                        LOG.info("Found sub node ${step.id} of target main node ${targetId} on path")
-                    }
-                    
-                    nodesOnPath.add(step.id)
-                    LOG.info("Found node ${step.id} on path between $sourceId and $targetId")
-                }
-            }
-        }
-        
-        return nodesOnPath
     }
+
+    // Kiểm tra các node nằm giữa source và target theo X
+    val minX = minOf(sourceGeo.x, targetGeo.x)
+    val maxX = maxOf(sourceGeo.x, targetGeo.x)
+    for (step in rule.steps) {
+        if (step.id == sourceId || step.id == targetId) continue
+        val cell = stepToCellMap[step.id] ?: continue
+        val cellGeo = graph.getCellGeometry(cell) ?: continue
+        if (cellGeo.x > minX && cellGeo.x < maxX) {
+            val isCellAbove = cellGeo.y < 150
+            if (isCellAbove == isSourceAbove) {
+                if (isSourceSubStep && !step.isSubStep) continue
+                if (step.isSubStep) nodesOnPath.add(step.id)
+            }
+        }
+    }
+    return nodesOnPath
+}
+
 
     /**
      * Apply special routing to edges to avoid crossing over nodes.
@@ -1710,15 +1606,29 @@ class GraphPanel(
                 continue
             }
             
-            // Xử lý kết nối giữa các main node
-            if (!sourceStep.isSubStep && !targetStep.isSubStep) {
-                // Kết nối giữa các main node
-                configureMainToMainEdge(edge, source, target)
+           // Xử lý kết nối giữa các main node
+           if (!sourceStep.isSubStep && !targetStep.isSubStep) {
+               // Kết nối giữa các main node
+               configureMainToMainEdge(edge, source, target)
+               continue
+           }
+
+            if (sourceStep.isSubStep && targetStep.isSubStep) {
+                configureSubToSubEdge(edge, source, target)
                 continue
             }
         }
     }
     
+    private fun configureSubToSubEdge(edge: mxCell, source: mxCell, target: mxCell) {
+        graph.model.setStyle(edge, "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;")
+    }
+
+    private fun configureMainToMainEdge(edge: mxCell, source: mxCell, target: mxCell) {
+        // Kết nối từ main node đến main node - đơn giản là đường thẳng ngang
+        graph.model.setStyle(edge, "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;")
+        LOG.info("Configured Main -> Main edge routing")
+    }
     /**
      * Configure edge routing from main node to sub node
      */
@@ -1812,85 +1722,84 @@ class GraphPanel(
     private fun configureSubToMainEdge(edge: mxCell, source: mxCell, target: mxCell) {
         val sourceGeo = graph.getCellGeometry(source)
         val targetGeo = graph.getCellGeometry(target)
-        
         if (sourceGeo == null || targetGeo == null) return
-        val sourceCenterX = sourceGeo.x + sourceGeo.width / 2
-        val targetCenterX = targetGeo.x + targetGeo.width / 2
-        val xDiff = Math.abs(sourceCenterX - targetCenterX)
-        
-        // Lấy ID của nodes để log
+    
         val sourceId = cellToStepMap[source]?.id ?: "unknown"
         val targetId = cellToStepMap[target]?.id ?: "unknown"
         LOG.info("Configuring edge from sub node $sourceId to main node $targetId")
-        
-        // Tạo control points để tạo đường đi
+    
         val edgeGeo = edge.geometry.clone() as mxGeometry
         edgeGeo.points = ArrayList<mxPoint>()
+    
+        val sourceRightX = sourceGeo.x + sourceGeo.width
+        val sourceMidY = sourceGeo.y + sourceGeo.height / 2
+        val targetMidX = targetGeo.x + targetGeo.width / 2
+        val targetTopY = targetGeo.y
+        val targetBottomY = targetGeo.y + targetGeo.height
+    
+        // Nếu cùng X (gần thẳng đứng), vẽ cạnh thẳng dọc
+        val xDiff = Math.abs((sourceGeo.x + sourceGeo.width / 2) - (targetGeo.x + targetGeo.width / 2))
         if (xDiff < 20) {
-            // Hai node cùng X, vẽ cạnh thẳng dọc từ giữa node này sang node kia
-            // Không cần thêm control point, chỉ cần đảm bảo style là orthogonal
-            edgeGeo.points = ArrayList() // Không thêm điểm điều khiển
+            edgeGeo.points = ArrayList()
             graph.model.setGeometry(edge, edgeGeo)
             graph.model.setStyle(edge, "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;")
-            LOG.info("Configured vertical edge for ${sourceId} <-> ${targetId}")
+            LOG.info("Configured vertical edge for $sourceId <-> $targetId")
             return
         }
-        
-        // Check position relationship
-        val isSourceToRight = sourceGeo.x > targetGeo.x + targetGeo.width
-        
-        if (isSourceToRight) {
-            // Sub node is to the right of main node (new layout)
-            // Điểm kết nối từ phía bên trái của source (sub node)
-            val x1 = sourceGeo.x
-            val y1 = sourceGeo.y + sourceGeo.height / 2
-            
-            // Điểm kết nối đến phía bên phải của target (main node)
-            val x3 = targetGeo.x + targetGeo.width
-            val y3 = targetGeo.y + targetGeo.height / 2
-            
-            // Middle point for smooth curve
-            val midX = (x1 + x3) / 2
-            
-            if (Math.abs(y1 - y3) < 30) {
-                // If they're at similar Y levels, just a simple orthogonal route
-                LOG.info("Using simple orthogonal route for sub->main")
-            } else {
-                // Need to add control points for better routing
-                edgeGeo.points.add(mxPoint(midX, y1))
-                edgeGeo.points.add(mxPoint(midX, y3))
-                LOG.info("Added control points for sub->main vertical difference")
-            }
+    
+        // Kiểm tra có sub node cùng phía nằm giữa đường đi không
+        val nodesOnPath = findNodesOnPathBetween(sourceGeo, targetGeo, sourceId, targetId, true)
+        if (nodesOnPath.isNotEmpty()) {
+            // Có node chắn trên đường đi, vẽ đường đi vòng
+            val obstacleId = nodesOnPath.first()
+            val obstacleCell = stepToCellMap[obstacleId] ?: return
+            val obstacleGeo = graph.getCellGeometry(obstacleCell) ?: return
+    
+            val obstacleRightX = obstacleGeo.x + obstacleGeo.width + 40
+            val isBelow = sourceGeo.y > targetGeo.y
+    
+            // Đi thẳng ra phải sub node
+            edgeGeo.points.add(mxPoint(sourceRightX + 20, sourceMidY))
+            // Đi lên/xuống đến ngoài node chắn
+            val yObstacle = if (isBelow)
+                obstacleGeo.y + obstacleGeo.height + 30
+            else
+                obstacleGeo.y - 30
+            edgeGeo.points.add(mxPoint(sourceRightX + 20, yObstacle))
+            // Đi ngang sang phải ngoài node chắn
+            edgeGeo.points.add(mxPoint(obstacleRightX, yObstacle))
+            // Đi lên/xuống đến ngang với main node
+            val yTarget = if (isBelow) targetTopY else targetBottomY
+            edgeGeo.points.add(mxPoint(obstacleRightX, yTarget))
+            // Đi sang trái vào trung điểm main node
+            edgeGeo.points.add(mxPoint(targetMidX+ 30, yTarget))
+            LOG.info("Routed around sub node $obstacleId for $sourceId -> $targetId")
         } else {
-            // Legacy support for old layout or complex routing cases
-            // Điểm kết nối từ phía bên phải của source
-            val x1 = sourceGeo.x + sourceGeo.width
-            val y1 = sourceGeo.y + sourceGeo.height / 2
-            
-            // Điểm kết nối đến phía bên trái của target
-            val x3 = targetGeo.x
-            val y3 = targetGeo.y + targetGeo.height / 2
-            
-            // Điểm trung gian nếu cần
-            if (x1 > x3) {
-                // Nếu source nằm bên phải target, cần thêm điểm trung gian
-                val midY = (y1 + y3) / 2
-                edgeGeo.points.add(mxPoint(x1 + 20, y1))
-                edgeGeo.points.add(mxPoint(x1 + 20, midY))
-                edgeGeo.points.add(mxPoint(x3 - 20, midY))
-                edgeGeo.points.add(mxPoint(x3 - 20, y3))
-                LOG.info("Using complex routing for sub->main")
+            // Không có node chắn, vẽ thẳng ra phải, lên/xuống đến ngang main node, rồi rẽ vào
+            val isAbove = sourceGeo.y + sourceGeo.height < targetGeo.y
+            val isBelow = sourceGeo.y > targetGeo.y + targetGeo.height
+            val yTarget = when {
+                isAbove -> targetTopY - 10
+                isBelow -> targetBottomY + 10
+                else -> targetMidX // Nếu nằm ngang, rẽ thẳng vào giữa
             }
+            val outX = maxOf(sourceRightX + 40, targetMidX)
+            edgeGeo.points.add(mxPoint(outX, sourceMidY))
+            if (isAbove || isBelow) {
+                edgeGeo.points.add(mxPoint(outX, if (isAbove) targetTopY - 10 else targetBottomY + 10))
+                edgeGeo.points.add(mxPoint(targetMidX, if (isAbove) targetTopY - 10 else targetBottomY + 10))
+            } else {
+                // Nếu nằm ngang, chỉ cần 1 control point
+                edgeGeo.points.add(mxPoint(targetMidX, sourceMidY))
+            }
+            LOG.info("Simple right then vertical then left routing for $sourceId -> $targetId")
         }
-        
-        // Áp dụng geometry mới
+    
+        // Áp dụng geometry mới và style
         graph.model.setGeometry(edge, edgeGeo)
-        
-        // Áp dụng style
         graph.model.setStyle(edge, "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;")
-        
-        LOG.info("Configured Sub -> Main edge routing")
     }
+    
     
     /**
      * Configure edge routing from start node to main node
@@ -1900,7 +1809,6 @@ class GraphPanel(
         graph.model.setStyle(edge, "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;")
         LOG.info("Configured Start -> Main edge routing")
     }
-    
     /**
      * Configure edge routing from start node to sub node
      */
@@ -1971,11 +1879,7 @@ class GraphPanel(
     /**
      * Configure edge routing from main node to main node
      */
-    private fun configureMainToMainEdge(edge: mxCell, source: mxCell, target: mxCell) {
-        // Kết nối từ main node đến main node - đơn giản là đường thẳng ngang
-        graph.model.setStyle(edge, "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;")
-        LOG.info("Configured Main -> Main edge routing")
-    }
+
 
     /**
      * Kiểm tra xem đường kết nối giữa hai node có đi xuyên qua node chính nào không
@@ -2040,26 +1944,5 @@ class GraphPanel(
         
         return pairs
     }
-
-    /**
-     * Update the coordinate display panel with current node positions
-     *  Hàm này để debug thôi
-     */
-    private fun updateCoordinateDisplay() {
-        val sb = StringBuilder()
-        sb.append("Node Coordinates:\n")
-        
-        for ((nodeId, cell) in stepToCellMap) {
-            val geo = graph.getCellGeometry(cell)
-            if (geo != null) {
-                val step = cellToStepMap[cell]
-                val nodeType = if (step?.isSubStep == true) "Sub" else "Main"
-                sb.append("$nodeId ($nodeType): x=${geo.x.toInt()}, y=${geo.y.toInt()}, w=${geo.width.toInt()}, h=${geo.height.toInt()}\n")
-            }
-        }
-        
-        debugTextArea.text = sb.toString()
-    }
-
 
 } 

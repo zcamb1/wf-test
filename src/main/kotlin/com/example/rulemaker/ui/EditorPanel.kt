@@ -172,20 +172,80 @@ class EditorPanel(
      */
     private fun createNavigationPanel(): JPanel {
         val panel = JPanel(FlowLayout(FlowLayout.CENTER))
-        
-        // Chỉ giữ lại nút Save Changes
-        panel.add(JButton("Save Changes").apply {
-            addActionListener {
-                saveChanges()
-            }
-        })
-        
+    
+        // Tạo nút Previous Step
+        val prevStepButton = JButton("Previous Step").apply {
+            icon = AllIcons.Actions.Back
+            isEnabled = true
+            addActionListener { onPreviousStep() }
+        }
+    
+        // Tạo nút Next Step
+        val nextStepButton = JButton("Next Step").apply {
+            icon = AllIcons.Actions.Forward
+            isEnabled = true
+            addActionListener { onNextStep() }
+        }
+    
+        // Nút Save Changes
+        val saveButton = JButton("Save Changes").apply {
+            addActionListener { saveChanges() }
+        }
+    
+        // Thêm nút vào panel, sắp xếp: Prev - Save - Next
+        panel.add(prevStepButton)
+        panel.add(saveButton)
+        panel.add(nextStepButton)
+    
         panel.border = BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY),
             JBUI.Borders.empty(8)
         )
-        
+    
         return panel
+    }
+
+    private fun onPreviousStep() {
+        val currentStep = this.currentStep ?: return
+        val rule = currentRule ?: return
+        // Tìm tất cả node cha
+        val parentIds = rule.steps.filter { it.nextStepIds.contains(currentStep.id) }.map { it.id }
+        if (parentIds.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No previous step.", "Navigation", JOptionPane.INFORMATION_MESSAGE)
+            return
+        }
+        if (parentIds.size == 1) {
+            val prevStep = rule.steps.find { it.id == parentIds[0] }
+            if (prevStep != null) setStep(prevStep)
+        } else {
+            val options = parentIds.toTypedArray()
+            val selected = JOptionPane.showInputDialog(this, "Select previous step:", "Previous Step", JOptionPane.QUESTION_MESSAGE, null, options, options[0])
+            if (selected != null) {
+                val prevStep = rule.steps.find { it.id == selected }
+                if (prevStep != null) setStep(prevStep)
+            }
+        }
+    }
+    
+    private fun onNextStep() {
+        val currentStep = this.currentStep ?: return
+        val rule = currentRule ?: return
+        val nextIds = currentStep.nextStepIds
+        if (nextIds.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No next step.", "Navigation", JOptionPane.INFORMATION_MESSAGE)
+            return
+        }
+        if (nextIds.size == 1) {
+            val nextStep = rule.steps.find { it.id == nextIds[0] }
+            if (nextStep != null) setStep(nextStep)
+        } else {
+            val options = nextIds.toTypedArray()
+            val selected = JOptionPane.showInputDialog(this, "Select next step:", "Next Step", JOptionPane.QUESTION_MESSAGE, null, options, options[0])
+            if (selected != null) {
+                val nextStep = rule.steps.find { it.id == selected }
+                if (nextStep != null) setStep(nextStep)
+            }
+        }
     }
     
     /**
